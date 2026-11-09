@@ -1,0 +1,9 @@
+ROAI Purser
+Copyright 2026 Satori Canton and the ROAI Purser contributors
+
+This product is developed by ROAI (https://roai.us) and contributors.
+It is licensed under the Elastic License 2.0. See LICENSE and LICENSING.md.
+
+packages/roi-core is licensed separately under the Apache License 2.0. See
+packages/roi-core/LICENSE and packages/roi-core/NOTICE. It includes the ROI
+calculation model first published in the roai.us ROI calculator.

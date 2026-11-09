@@ -1,0 +1,5 @@
+ROAI roi-core
+Copyright 2026 Satori Canton and the ROAI Purser contributors
+
+This package is licensed under the Apache License 2.0. See LICENSE.
+It holds the ROI calculation model first published in the roai.us ROI calculator.

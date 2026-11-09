@@ -1,0 +1,112 @@
+/* People, Departments and organisation settings. Cobalt Depth tokens from styles.css. */
+
+/* A small status line: a light and a word, such as "Active". */
+.status-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* People and departments tables */
+.people-table td,
+.departments-table td {
+  vertical-align: top;
+}
+.cell-sub {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* Green, yellow and red agent counts for a department. */
+.light-counts {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+  white-space: nowrap;
+}
+.light-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Spend against a department's monthly budget. */
+.budget {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+  font-weight: 600;
+}
+.budget-over {
+  color: var(--error);
+  font-weight: 700;
+}
+.spend-fill.over {
+  fill: var(--error);
+}
+
+/* "Own rules" and "Default rules" */
+.rule-tag {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--wash);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.rule-tag.own {
+  border-color: var(--action);
+  background: var(--paper);
+  color: var(--action);
+}
+.rules-cell {
+  min-width: 200px;
+}
+
+/* Self-service rules form */
+.policy-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.subhead {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+/* The sign-in redirect address, with its copy button. */
+.uri-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.uri-row code {
+  flex: 1 1 260px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--wash);
+  overflow-wrap: anywhere;
+}
+
+/* The person panel's access section. */
+.access {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--ground);
+}

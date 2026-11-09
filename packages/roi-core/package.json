@@ -1,0 +1,29 @@
+{
+  "name": "@roai-us/roi-core",
+  "version": "0.1.0",
+  "description": "The ROI math behind the roai.us calculator and ROAI Purser. Pure functions, fully tested.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/roai-us/purser.git",
+    "directory": "packages/roi-core"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "NOTICE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  }
+}

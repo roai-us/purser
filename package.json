@@ -1,0 +1,39 @@
+{
+  "name": "purser",
+  "private": true,
+  "description": "ROAI Purser: a free, self-hosted control panel for AI agents and AI spend.",
+  "license": "Elastic-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/roai-us/purser.git"
+  },
+  "homepage": "https://roai.us",
+  "type": "module",
+  "packageManager": "pnpm@10.28.2",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:coverage": "pnpm -r test:coverage",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test:coverage",
+    "start": "pnpm build && node apps/server/dist/cli.js serve",
+    "demo": "pnpm build && PURSER_DATA_DIR=.demo-data node apps/server/dist/cli.js demo-seed --agents 1500 --force && PURSER_DATA_DIR=.demo-data PURSER_DEMO_SIGNIN=1 node apps/server/dist/cli.js serve"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "@vitest/coverage-v8": "^4.1.12",
+    "eslint": "^10.14.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^4.1.12"
+  }
+}
