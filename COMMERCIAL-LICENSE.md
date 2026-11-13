@@ -1,7 +1,8 @@
 # ROAI Purser Commercial License Agreement
 
 > **Draft.** This agreement is waiting for legal review and is not offered to anyone until
-> this note is removed. Items in square brackets, such as [STATE], are filled in before use.
+> this note is removed. Items in square brackets, such as [CUSTOMER NAME], are filled in for
+> each customer before use.
 
 This agreement is between Satori Canton, an individual doing business as ROAI
 ("Licensor"), and the organization named as Customer in the Order Form ("Customer"). It
@@ -104,7 +105,9 @@ End Customers that used each Licensed Service at any one time during the year ju
 Licensor may also ask for this report once in any other 12-month period. If a report shows
 more End Customers than the Order Form allows, Customer will pay the overage fee in the
 Order Form for the rest of the current year, prorated from the month the limit was first
-exceeded, and the higher limit will apply from then on.
+exceeded, and the higher limit will apply from then on. If the Order Form sets no overage
+fee, the parties will agree in good faith on a higher limit and fee, and until they do,
+Customer will not add End Customers beyond the limit.
 
 ## 5. Fees and payment
 
@@ -225,22 +228,14 @@ from a Licensed Service, including a claim by an End Customer, or from Customer'
 Section 3 or 4. Customer will pay the damages and costs finally awarded against Licensor on
 that claim, or any settlement Customer agrees to.
 
-**12.2 By Licensor.** Licensor will defend Customer against any third-party claim that the
-Software, as Licensor provides it and without changes by anyone else, infringes that third
-party's copyright or misappropriates its trade secret. Licensor will pay the damages and
-costs finally awarded against Customer on that claim, or any settlement Licensor agrees to.
-If such a claim is made or seems likely, Licensor may change the Software so that it no
-longer infringes, get Customer the right to keep using it, or, if neither is reasonably
-possible, end the Agreement and refund the fees Customer prepaid for the remaining Term.
-This section does not cover claims arising from Customer's changes, from combining the
-Software with anything Licensor didn't provide, or from patents. This section states
-Licensor's entire obligation, and Customer's only remedy, for intellectual property claims.
+**12.2 No defense by Licensor.** Licensor does not defend Customer against, or pay for,
+any third-party claim, including a claim that the Software infringes or misappropriates
+anyone's intellectual property.
 
-**12.3 Process.** The party asking for a defense must tell the other party about the claim
-promptly, let it control the defense and any settlement, and cooperate reasonably at its
-expense. A party may not agree to a settlement that admits fault for the other party or
-requires the other party to do anything, other than stop using the Software, without the
-other party's written consent.
+**12.3 Process.** Licensor will tell Customer promptly about a claim covered by Section
+12.1, let Customer control its defense and any settlement, and cooperate reasonably at
+Customer's expense. Customer may not agree to a settlement that admits fault for Licensor or
+requires Licensor to do anything without Licensor's written consent.
 
 ## 13. Limits on liability
 
@@ -275,10 +270,11 @@ void.
 
 ## 16. General
 
-**16.1 Governing law and courts.** The laws of the State of [STATE], United States, govern
+**16.1 Governing law and courts.** The laws of the State of Arkansas, United States, govern
 this Agreement, without regard to conflict-of-law rules. The United Nations Convention on
 Contracts for the International Sale of Goods does not apply. The parties agree to the
-exclusive jurisdiction of the state and federal courts located in [COUNTY], [STATE], except
+exclusive jurisdiction of the state courts located in Independence County, Arkansas, and
+the United States District Court for the Eastern District of Arkansas, except
 that either party may seek an injunction in any court to protect its intellectual property
 or confidential information.
 
@@ -315,24 +311,24 @@ counterparts, which together form one agreement.
 This Order Form is part of the ROAI Purser Commercial License Agreement between Licensor
 and Customer.
 
-| Item                     | Details                                                                 |
-| ------------------------ | ----------------------------------------------------------------------- |
-| Licensor                 | Satori Canton, doing business as ROAI                                   |
-| Licensor notice email    | admin@roai.us                                                           |
-| Customer legal name      | [CUSTOMER NAME]                                                         |
-| Customer address         | [ADDRESS]                                                               |
-| Customer notice email    | [EMAIL]                                                                 |
-| Start Date               | [DATE]                                                                  |
-| Initial Term             | 12 months                                                               |
-| Licensed Service(s)      | [NAME AND ONE-LINE DESCRIPTION OF EACH SERVICE]                         |
-| End Customer limit       | [NUMBER] End Customers across all Licensed Services                     |
-| Premium Features         | None                                                                    |
-| Attribution              | Required                                                                |
-| Support plan             | None                                                                    |
-| Annual fee               | USD [AMOUNT]                                                            |
-| Overage fee              | USD [AMOUNT] a year for each additional block of [NUMBER] End Customers |
-| Billing                  | Annually in advance, due within 30 days of invoice                      |
-| Changes to the agreement | None                                                                    |
+| Item                     | Details                                             |
+| ------------------------ | --------------------------------------------------- |
+| Licensor                 | Satori Canton, doing business as ROAI               |
+| Licensor notice email    | admin@roai.us                                       |
+| Customer legal name      | [CUSTOMER NAME]                                     |
+| Customer address         | [ADDRESS]                                           |
+| Customer notice email    | [EMAIL]                                             |
+| Start Date               | [DATE]                                              |
+| Initial Term             | 12 months                                           |
+| Licensed Service(s)      | [NAME AND ONE-LINE DESCRIPTION OF EACH SERVICE]     |
+| End Customer limit       | [NUMBER] End Customers across all Licensed Services |
+| Premium Features         | None                                                |
+| Attribution              | Required                                            |
+| Support plan             | None                                                |
+| Fees                     | [AS AGREED WITH THIS CUSTOMER]                      |
+| Overage fee              | [AS AGREED, OR NONE]                                |
+| Billing                  | Annually in advance, due within 30 days of invoice  |
+| Changes to the agreement | None                                                |
 
 **Customer**
 
