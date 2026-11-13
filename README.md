@@ -160,6 +160,6 @@ sign a short [Contributor License Agreement](CLA.md). If you find a security iss
 
 ROAI Purser is free to use and its source is public, under the
 [Elastic License 2.0](LICENSE). You need a commercial license only to offer it to others as
-a hosted or managed service. `packages/roi-core` is under the
+a hosted or managed service; see [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md). `packages/roi-core` is under the
 [Apache License 2.0](packages/roi-core/LICENSE). See [LICENSING.md](LICENSING.md) and
 [NOTICE](NOTICE).
