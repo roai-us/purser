@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security issue
+    url: https://github.com/roai-us/purser/security/policy
+    about: Please don't open a public issue for a security problem. Follow the security policy instead.
+  - name: Commercial license
+    url: https://github.com/roai-us/purser/blob/main/LICENSING.md
+    about: To offer ROAI Purser to others as a hosted service, write to admin@roai.us.

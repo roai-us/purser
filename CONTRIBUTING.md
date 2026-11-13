@@ -3,6 +3,8 @@
 Thanks for helping. Purser holds people's AI provider keys and decides whether their
 agents may run, so we keep the bar high and the surface small.
 
+Everyone who takes part follows the [code of conduct](CODE_OF_CONDUCT.md).
+
 ## Before you start
 
 - **Bugs and small fixes:** open a pull request.

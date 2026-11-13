@@ -1,6 +1,6 @@
 # Connectors
 
-A connector tells Purser how to sit in front of one AI provider's API: where it
+A connector tells ROAI Purser how to sit in front of one AI provider's API: where it
 lives, how it takes its key, which endpoints are proxied and how its usage is
 metered. Built-in connectors and your own use the same description, so adding a
 provider is a small JSON file, not new gateway code.

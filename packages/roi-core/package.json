@@ -8,6 +8,10 @@
     "url": "https://github.com/roai-us/purser.git",
     "directory": "packages/roi-core"
   },
+  "homepage": "https://github.com/roai-us/purser/tree/main/packages/roi-core#readme",
+  "bugs": {
+    "url": "https://github.com/roai-us/purser/issues"
+  },
   "type": "module",
   "exports": {
     ".": {
