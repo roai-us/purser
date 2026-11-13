@@ -1,0 +1,26 @@
+name: Feature or connector request
+description: Suggest a feature or a new provider connector.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: Please check the [roadmap](https://github.com/roai-us/purser/blob/main/docs/roadmap.md) first. It says what is planned and in what order.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help
+      description: Describe the feature or connector you have in mind.
+    validations:
+      required: true
+  - type: input
+    id: scale
+    attributes:
+      label: How many agents or people this affects
+      placeholder: About 40 agents across 3 departments

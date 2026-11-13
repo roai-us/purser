@@ -8,6 +8,9 @@
     "url": "https://github.com/roai-us/purser.git"
   },
   "homepage": "https://roai.us",
+  "bugs": {
+    "url": "https://github.com/roai-us/purser/issues"
+  },
   "type": "module",
   "packageManager": "pnpm@10.28.2",
   "engines": {
