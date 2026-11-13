@@ -1,8 +1,6 @@
 # ROAI Purser Commercial License Agreement
 
-> **Draft.** This agreement is waiting for legal review and is not offered to anyone until
-> this note is removed. Items in square brackets, such as [CUSTOMER NAME], are filled in for
-> each customer before use.
+Items in square brackets, such as [CUSTOMER NAME], are filled in for each customer.
 
 This agreement is between Satori Canton, an individual doing business as ROAI
 ("Licensor"), and the organization named as Customer in the Order Form ("Customer"). It
