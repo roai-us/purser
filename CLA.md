@@ -1,8 +1,5 @@
 # ROAI Purser Contributor License Agreement
 
-> **Draft.** This agreement is waiting for legal review. No outside contributions will be
-> accepted until this note is removed.
-
 This agreement is between you and Satori Canton, including anyone Satori Canton later
 transfers the ROAI Purser project to (the "Maintainer"). It covers every Contribution you
 submit to ROAI Purser. A "Contribution" is any code, documentation or other material you

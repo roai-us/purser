@@ -22,6 +22,7 @@ This page is a plain summary. The license files are what count.
 Offering ROAI Purser to other people or companies as a hosted or managed service, where
 they get access to a substantial set of its features.
 
+The standard terms are in the [ROAI Purser Commercial License Agreement](COMMERCIAL-LICENSE.md).
 To ask about a commercial license, write to [admin@roai.us](mailto:admin@roai.us).
 
 The Elastic License 2.0 has two other limits: you can't remove or hide licensing,
