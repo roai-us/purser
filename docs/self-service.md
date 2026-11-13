@@ -1,6 +1,6 @@
 # People, departments and self-service
 
-Purser works two ways, and both stay supported:
+ROAI Purser works two ways, and both stay supported:
 
 - **Admin-issued.** An admin adds each agent and hands its key to whoever runs the
   tool. Nothing below is needed for this. It is what the beta requires.

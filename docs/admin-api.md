@@ -1,6 +1,6 @@
 # Admin API
 
-The web UI and the `roai` CLI both use this API. Everything is JSON. Admin routes
+The ROAI Purser web UI and the `roai` CLI both use this API. Everything is JSON. Admin routes
 live under `/admin`. The gateway mounts that agents call are described in
 [connectors.md](connectors.md).
 

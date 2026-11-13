@@ -35,7 +35,7 @@ is.
 - [x] Rotate all keys, for a security incident: everyone's at once or one department's,
       with owners collecting their own ([admin-api.md](admin-api.md))
 - [x] Agent accounts with more than one service, each with its own limits, so one agent
-      can use another AI service through Purser ([agent-access.md](agent-access.md))
+      can use another AI service through ROAI Purser ([agent-access.md](agent-access.md))
 - [x] An MCP server, so agents can see and use their own Purser services
 - [x] Guided replacement of provider keys on the Security page: each new key is tested
       before it takes over, and old keys are tracked until they're deleted at the provider

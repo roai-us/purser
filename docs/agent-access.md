@@ -1,6 +1,6 @@
 # Agent accounts, services and MCP
 
-Every agent in Purser has its own account: one key, a named owner, spending limits and
+Every agent in ROAI Purser has its own account: one key, a named owner, spending limits and
 a list of the AI services it may use. That key reaches any of those services through
 Purser, so an agent never holds a provider's key.
 
