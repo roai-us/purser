@@ -30,5 +30,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
