@@ -61,9 +61,13 @@ jobs:
         run: |
           version=${GITHUB_REF_NAME#v}
           cd "$(mktemp -d)"
-          for i in $(seq 1 10); do
-            npx -y "@roai-us/purser@$version" help | grep -q "ROAI Purser $version" && exit 0
+          # npm takes a minute or more to make a new version available.
+          for i in $(seq 1 40); do
+            if npm view "@roai-us/purser@$version" version >/dev/null 2>&1; then
+              npx -y "@roai-us/purser@$version" help > help.txt
+              grep "ROAI Purser $version" help.txt >/dev/null && exit 0
+            fi
             sleep 15
           done
-          echo "npx could not run @roai-us/purser@$version."
+          echo "npx could not run @roai-us/purser@$version within 10 minutes."
           exit 1
