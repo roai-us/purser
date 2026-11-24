@@ -1,3 +1,7 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# Install only package versions at least 3 days old, the same cooldown Dependabot
+# uses. A compromised release is usually caught and pulled within that time.
+minimumReleaseAge: 4320
