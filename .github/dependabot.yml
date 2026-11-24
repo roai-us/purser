@@ -11,6 +11,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # Purser runs on Node 24, the long-term support line, as .nvmrc says.
+      - dependency-name: node
+        update-types: [version-update:semver-major]
   - package-ecosystem: npm
     directory: /
     schedule:
