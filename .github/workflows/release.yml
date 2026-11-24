@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
-      id-token: write # npm provenance: links each package to this run
+      id-token: write # trusted publishing and provenance on npm
     steps:
       # Actions are pinned to full commit hashes. Dependabot keeps them current.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -41,22 +41,35 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm build
+      # Trusted publishing: npm checks this workflow's GitHub identity, so no
+      # token is stored anywhere. It needs npm 11.5.1 or later, and adds
+      # provenance by itself. pnpm packs, which turns workspace:* into real
+      # versions; npm publishes the packed file.
+      - run: npm install -g npm@^11.5.1
       - name: Publish @roai-us/roi-core, if this version is new
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: "true"
         run: |
           version=$(node -p 'require("./packages/roi-core/package.json").version')
           if npm view "@roai-us/roi-core@$version" version >/dev/null 2>&1; then
             echo "@roai-us/roi-core $version is already on npm."
           else
-            pnpm --filter @roai-us/roi-core publish --no-git-checks --access public
+            out=$(mktemp -d)
+            pnpm --filter @roai-us/roi-core pack --pack-destination "$out"
+            npm publish "$out"/*.tgz --access public
           fi
       - name: Publish @roai-us/purser
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: "true"
-        run: pnpm --filter @roai-us/purser publish --no-git-checks --access public
+        run: |
+          version=$(node -p 'require("./apps/server/package.json").version')
+          # npx uses the "latest" tag. Until there is a stable version, the
+          # newest prerelease is latest; after that, prereleases go to "next".
+          tag=latest
+          if [[ "$version" == *-* ]] &&
+            npm view @roai-us/purser versions --json 2>/dev/null |
+              node -e 'const v=JSON.parse(require("fs").readFileSync(0,"utf8")||"[]");process.exit([].concat(v).some(x=>!x.includes("-"))?0:1)'; then
+            tag=next
+          fi
+          out=$(mktemp -d)
+          pnpm --filter @roai-us/purser pack --pack-destination "$out"
+          npm publish "$out"/*.tgz --access public --tag "$tag"
       - name: Check that npx runs it
         run: |
           version=${GITHUB_REF_NAME#v}

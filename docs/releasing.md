@@ -22,29 +22,20 @@ A version tag publishes everything:
    server's version. The release workflow runs the full check again, publishes, then
    runs the new version with `npx` from a clean folder.
 
-## Before the first release
+## How npm trusts the release
 
-The release workflow publishes to npm with a token kept as the repository secret
-`NPM_TOKEN`. Create it once:
+npm publishes with **trusted publishing**: npm checks that the request comes from
+`release.yml` in `roai-us/purser`, so no npm token is stored anywhere. Each package's
+settings on npmjs.com name this repository and workflow under Trusted Publisher, and
+require two-factor authentication with tokens disallowed. Every package is published
+with provenance, which links it to the workflow run that built it.
 
-1. Sign in to npmjs.com as an owner of the `roai-us` organization.
-2. Create a granular access token that can read and write the `@roai-us` packages,
-   with an expiry date.
-3. Save it in GitHub under the repository's Settings, Secrets and variables, Actions,
-   as `NPM_TOKEN`.
+A new package can't use trusted publishing until it exists on npm. To add a package
+to the release, publish its first version by hand, set up its trusted publisher, then
+add it to `release.yml`.
 
-Once both packages exist on npm, set up trusted publishing for each package on
-npmjs.com, pointing at this repository and `release.yml`, then delete the token and the
-secret. Do this soon: npm is restricting tokens that bypass two-factor authentication
-for publishing, and says so in the publish log.
-
-The first image the Docker workflow publishes is private, because GitHub makes new
-organization packages private. Make it public once: open the `purser` package under
-the roai-us organization's Packages tab, then Package settings, Change visibility,
-Public. Later versions keep that setting.
-
-Every package is published with provenance, which links it to the workflow run that
-built it.
+The Docker image is public. GitHub makes a new organization package private; if the
+image is ever recreated, set it public again under the package's settings.
 
 ## Checks on every pull request
 
