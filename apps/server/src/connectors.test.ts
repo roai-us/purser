@@ -114,6 +114,7 @@ describe("custom connectors", () => {
     const dir = tempDir();
     writeConnector(dir, "a-builtin.json", { ...acme, id: "openai" });
     writeConnector(dir, "b-reserved.json", { ...acme, id: "admin" });
+    writeConnector(dir, "b-reserved-v1.json", { ...acme, id: "v1" });
     writeConnector(dir, "c-plain-http.json", {
       ...acme,
       id: "plain",
@@ -140,7 +141,7 @@ describe("custom connectors", () => {
     writeConnector(dir, "i-dupe-2.json", { ...acme, id: "twice" });
     const { manifests, problems } = loadCustomConnectors(dir);
     expect(manifests.map((m) => m.id)).toEqual(["twice"]);
-    expect(problems).toHaveLength(9);
+    expect(problems).toHaveLength(10);
     expect(problems.join("\n")).toMatch(/already used/);
     expect(problems.join("\n")).toMatch(/reserved/);
     expect(problems.join("\n")).toMatch(/https/);

@@ -1,6 +1,15 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  resolve: {
+    // Test against the ROI math's source, so a fresh checkout needs no build first.
+    alias: {
+      "@roai-us/roi-core": fileURLToPath(
+        new URL("../../packages/roi-core/src/index.ts", import.meta.url),
+      ),
+    },
+  },
   test: {
     include: ["src/**/*.test.ts"],
     coverage: {

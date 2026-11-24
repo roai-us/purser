@@ -39,6 +39,10 @@ is.
 - [x] An MCP server, so agents can see and use their own Purser services
 - [x] Guided replacement of provider keys on the Security page: each new key is tested
       before it takes over, and old keys are tracked until they're deleted at the provider
+- [x] Workflows, results and the ROI report: a locked baseline and thresholds, results
+      from agents (`POST /v1/outcomes` and MCP) and people, cost per accepted unit, net
+      return, and payback and NPV from `roi-core`, every number labelled measured,
+      attributed or modelled, and a printable one-page report ([roi.md](roi.md))
 - [ ] The same proof against the live provider APIs (done for OpenRouter)
 
 **Next:** per-agent OpenRouter keys created through OpenRouter's key management API

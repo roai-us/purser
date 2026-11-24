@@ -21,6 +21,7 @@ import {
   type AuditEvent,
   type UsageRecord,
 } from "./types.js";
+import { generateWorkflows, type SeedWorkflows } from "./seed-workflows.js";
 
 export interface SeedOptions {
   agents: number;
@@ -39,6 +40,8 @@ export interface SeedResult {
   calls: CallEntry[];
   /** People, departments and requests. */
   org: SeedOrg;
+  /** Workflows with a month of results. */
+  workflows: SeedWorkflows;
 }
 
 /** A small, fast, deterministic random number generator (mulberry32). */
@@ -449,9 +452,11 @@ export function generateSeed(options: SeedOptions): SeedResult {
   usage.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
   const org = generateOrg(agents, usage, options.now, r);
   audit.push(...org.audit);
+  const workflows = generateWorkflows(agents, options.now, r);
+  audit.push(...workflows.audit);
   audit.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
   const calls = demoCalls(agents, usage, options.now, 1500);
-  return { agents, usage, audit, calls, org };
+  return { agents, usage, audit, calls, org, workflows };
 }
 
 const round2 = (n: number) => Math.max(0.01, Math.round(n * 100) / 100);
@@ -495,6 +500,15 @@ export function writeSeed(
   });
   const { audit: _audit, ...org } = seed.org;
   writeAtomic(join(dataDir, "org.json"), JSON.stringify(org, null, 2));
+  writeAtomic(
+    join(dataDir, "workflows.json"),
+    JSON.stringify(seed.workflows.workflows, null, 2),
+  );
+  writeFileSync(
+    join(dataDir, "outcomes.jsonl"),
+    lines(seed.workflows.outcomes),
+    { mode: 0o600 },
+  );
   // The demo turns the call log on, with a day of sample calls in it.
   const logsDir = join(dataDir, "logs");
   rmSync(logsDir, { recursive: true, force: true });

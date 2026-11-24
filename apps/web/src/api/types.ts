@@ -554,3 +554,184 @@ export interface OrgSettingsView {
   signIn: SignInConfig | null;
   redirectUri: string;
 }
+
+// Workflows and ROI
+
+/** How far a number can be trusted. A number takes the weakest label of its parts. */
+export type Confidence = "measured" | "attributed" | "modelled";
+
+export interface Labelled {
+  value: number | null;
+  label: Confidence;
+}
+
+export type ThresholdMetric =
+  "cost_per_accepted_unit" | "acceptance_rate" | "net_monthly_return";
+
+export interface Threshold {
+  metric: ThresholdMetric;
+  when: "above" | "below";
+  value: number;
+}
+
+export interface Baseline {
+  minutesPerUnit: number;
+  hourlyCostUsd: number;
+  unitsPerMonth?: number | undefined;
+  measuredOn: string;
+  method: string;
+  source: "measured" | "estimated";
+}
+
+export type Attribution = "holdout" | "before_after" | "modelled";
+
+export interface WorkflowCosts {
+  implementationUsd: number;
+  monthlyMaintenanceUsd: number;
+  monthlyEvaluationUsd: number;
+  discountRate: number;
+}
+
+export interface Workflow {
+  id: string;
+  name: string;
+  unit: string;
+  owner: string;
+  ownerEmail?: string | undefined;
+  team?: string | undefined;
+  agents: string[];
+  baseline: Baseline;
+  attribution: Attribution;
+  defaultReviewMinutes: number;
+  costs: WorkflowCosts;
+  stopIf: Threshold;
+  scaleIf?: Threshold | undefined;
+  minUnits: number;
+  status: "active" | "archived";
+  createdAt: string;
+  createdBy: string;
+  lockedAt?: string | undefined;
+  changedAfterLock?: { at: string; by: string; fields: string[] }[] | undefined;
+}
+
+export type Verdict = "too_early" | "stop" | "scale" | "continue";
+
+export interface RoiReport {
+  workflowId: string;
+  period: { from: string; to: string; days: number };
+  results: {
+    accepted: number;
+    reworked: number;
+    discarded: number;
+    total: number;
+    acceptanceRate: number | null;
+    byAgents: number;
+    voided: number;
+  };
+  cost: {
+    inference: Labelled;
+    review: Labelled & { minutes: number; minutesDefaulted: number };
+    upkeep: Labelled;
+    total: Labelled;
+    estimatedCalls: number;
+    calls: number;
+  };
+  perUnit: { baseline: Labelled; costPerAcceptedUnit: Labelled };
+  value: Labelled;
+  netReturn: Labelled;
+  netMonthlyReturn: Labelled;
+  projection: {
+    paybackMonths: Labelled;
+    year1RoiPercent: Labelled;
+    threeYearNpv: Labelled;
+    mostSensitive: {
+      input: string;
+      words: string;
+      netAnnualIfChanged: number;
+      delta: number;
+    } | null;
+    calculatorVersion: string;
+  };
+  verdict: Verdict;
+  thresholds: {
+    stop: Threshold & { met: boolean };
+    scale: (Threshold & { met: boolean }) | null;
+  };
+  caveats: string[];
+}
+
+export interface WorkflowSummary extends Workflow {
+  summary: {
+    period: RoiReport["period"];
+    verdict: Verdict;
+    results: number;
+    acceptanceRate: number | null;
+    costPerAcceptedUnit: Labelled;
+    baselineCostPerUnit: Labelled;
+    netMonthlyReturn: Labelled;
+  };
+}
+
+export interface WorkflowAgent {
+  id: string;
+  name: string | null;
+  state: AgentState | null;
+}
+
+export interface WorkflowDetail {
+  workflow: Workflow;
+  agents: WorkflowAgent[];
+  report: RoiReport;
+}
+
+export type OutcomeResult = "accepted" | "reworked" | "discarded";
+
+export interface Outcome {
+  id: string;
+  workflowId: string;
+  at: string;
+  recordedAt: string;
+  result: OutcomeResult;
+  count: number;
+  reviewMinutes?: number | undefined;
+  ref?: string | undefined;
+  note?: string | undefined;
+  source: "agent" | "person";
+  by: string;
+  agentId?: string | undefined;
+  voidedAt?: string | undefined;
+  voidedBy?: string | undefined;
+}
+
+export interface NewWorkflow {
+  name: string;
+  unit: string;
+  owner: string;
+  ownerEmail?: string;
+  team?: string;
+  agents: string[];
+  baseline: Baseline;
+  attribution: Attribution;
+  defaultReviewMinutes: number;
+  costs: WorkflowCosts;
+  stopIf: Threshold;
+  scaleIf?: Threshold;
+  minUnits: number;
+}
+
+export type WorkflowPatch = Partial<
+  Omit<NewWorkflow, "ownerEmail" | "team" | "scaleIf">
+> & {
+  ownerEmail?: string | null;
+  team?: string | null;
+  scaleIf?: Threshold | null;
+  status?: "active" | "archived";
+};
+
+export interface NewOutcome {
+  result: OutcomeResult;
+  count: number;
+  reviewMinutes?: number;
+  note?: string;
+  at?: string;
+}

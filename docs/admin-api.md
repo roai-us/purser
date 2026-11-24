@@ -268,6 +268,11 @@ Connector { id, name, kind: "openai-compatible" | "anthropic", source: "builtin"
 - `GET /admin/subscriptions?since=` reports what coding tools logged on this machine,
   priced at API rates. Purser cannot cap or stop subscription usage.
 
+## Workflows and ROI
+
+Workflows, their results and the ROI report are under `/admin/workflows`. See
+[roi.md](roi.md).
+
 ## Web UI
 
 Any other GET that is not under `/admin`, `/auth`, `/login`, `/health` or a gateway
