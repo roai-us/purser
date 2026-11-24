@@ -46,6 +46,8 @@ is.
 - [x] A Docker image: one container on a volume, running as a non-root user, tested
       on every pull request and published for amd64 and arm64 from version tags
       ([docker.md](docker.md))
+- [x] `npx @roai-us/purser`: the server package on npm with the web UI inside it,
+      packed and run from a clean folder on every pull request ([releasing.md](releasing.md))
 - [ ] The same proof against the live provider APIs (done for OpenRouter)
 
 **Next:** per-agent OpenRouter keys created through OpenRouter's key management API

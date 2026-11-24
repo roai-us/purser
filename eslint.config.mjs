@@ -10,6 +10,8 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/.smoke/**",
       ".demo-data/**",
+      // The web UI copied into the server package when it is packed.
+      "apps/server/web/**",
     ],
   },
   js.configs.recommended,
@@ -20,6 +22,13 @@ export default tseslint.config(
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+    },
+  },
+  {
+    // Small Node scripts, such as the server's prepack step.
+    files: ["**/scripts/**/*.mjs"],
+    languageOptions: {
+      globals: { console: "readonly", process: "readonly", URL: "readonly" },
     },
   },
   {

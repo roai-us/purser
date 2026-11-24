@@ -95,9 +95,16 @@ function connectorId(envPart: string): string {
   return envPart.toLowerCase().replace(/_/g, "-");
 }
 
-/** The web build sits beside the server in the repository: apps/web/dist. */
+/**
+ * The built web UI: inside the npm package it sits beside dist as web/; in
+ * the repository it is apps/web/dist.
+ */
 function defaultWebDir(): string {
-  return resolve(dirname(fileURLToPath(import.meta.url)), "../../web/dist");
+  const here = dirname(fileURLToPath(import.meta.url));
+  const packaged = resolve(here, "../web");
+  return existsSync(join(packaged, "index.html"))
+    ? packaged
+    : resolve(here, "../../web/dist");
 }
 
 /**

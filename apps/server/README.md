@@ -1,41 +1,42 @@
-# ROAI Purser server (phase 0 prototype)
+# ROAI Purser
 
-The gateway, the admin API and the web UI in one process. It is a prototype: it shows
-that an agent can be given its own key, capped and stopped by changing nothing but
-its base URL, and that a fleet of thousands of agents can be run from one screen. It
-is not ready for production.
+A free, self-hosted control panel for AI agents and AI spend. Every agent gets its own
+key, a named owner, a spending cap and a kill switch, and every AI dollar is tied to
+the work it paid for. The gateway, the admin API, the web UI and the `roai` command
+run in one process, on your machine.
+
+It is early: not ready for production yet. The code, the roadmap and the docs are at
+[github.com/roai-us/purser](https://github.com/roai-us/purser).
 
 ## Try it
 
-You need Node 24 or later. From the repository root:
+You need Node 24 or later:
 
 ```bash
-pnpm install
-pnpm build
+npx @roai-us/purser
 ```
 
-Start Purser. It opens the web UI in your browser with a one-time sign-in link, and
-prints the link too:
+Purser opens the web UI in your browser with a one-time sign-in link, and prints the
+link too. Your data stays in `~/.purser`. To keep the `roai` command around, install it
+instead: `npm install -g @roai-us/purser`, then run `roai`.
 
-```bash
-node apps/server/dist/cli.js serve
-```
+Prefer Docker? See [docs/docker.md](https://github.com/roai-us/purser/blob/main/docs/docker.md).
 
 Add your provider keys in the web UI, where each one is tested as you add it, or set
 them in the environment (`PURSER_OPENROUTER_API_KEY=sk-or-...` and so on). Either
-way they stay in the server and agents never see them.
+way they stay in Purser and agents never see them.
 
 To try the UI with a large, made-up fleet first, fill a separate data directory:
 
 ```bash
-PURSER_DATA_DIR=~/.purser-demo node apps/server/dist/cli.js demo-seed --agents 1500
-PURSER_DATA_DIR=~/.purser-demo node apps/server/dist/cli.js serve
+PURSER_DATA_DIR=~/.purser-demo npx @roai-us/purser demo-seed --agents 1500
+PURSER_DATA_DIR=~/.purser-demo npx @roai-us/purser
 ```
 
 Register an agent. Every agent needs an owner. The key is shown once:
 
 ```bash
-node apps/server/dist/cli.js agent add support-bot --owner "Dana Ortiz" --daily 5 --monthly 50
+npx @roai-us/purser agent add support-bot --owner "Dana Ortiz" --daily 5 --monthly 50
 ```
 
 Point the agent at Purser and give it its Purser key instead of a provider key:
@@ -47,20 +48,20 @@ ANTHROPIC_BASE_URL=http://127.0.0.1:4141/anthropic  ANTHROPIC_API_KEY=purser_...
 
 For OpenRouter, use the base URL `http://127.0.0.1:4141/openrouter/api/v1` with the
 agent's Purser key. Any OpenAI-compatible client works. Every connector's base URL is
-in [docs/connectors.md](../../docs/connectors.md) and on the UI's provider page.
+in [docs/connectors.md](https://github.com/roai-us/purser/blob/main/docs/connectors.md) and on the UI's provider page.
 
 Watch the spend and stop the agent:
 
 ```bash
-node apps/server/dist/cli.js agent list
-node apps/server/dist/cli.js kill support-bot
-node apps/server/dist/cli.js resume support-bot
+npx @roai-us/purser agent list
+npx @roai-us/purser kill support-bot
+npx @roai-us/purser resume support-bot
 ```
 
 `roai kill` pauses the agent and cuts any request it has open, including a stream
-halfway through. Run `node apps/server/dist/cli.js help` for every command.
+halfway through. Run `npx @roai-us/purser help` for every command.
 
-## What the prototype does
+## What it does
 
 - **One key per agent.** A key starts with `purser_` and is stored only as a SHA-256
   hash. Rotating a key makes the old one stop working at once, or after a grace
@@ -71,7 +72,7 @@ halfway through. Run `node apps/server/dist/cli.js help` for every command.
   up to 1,000 at once.
 - **Connectors.** OpenAI, Anthropic, OpenRouter, xAI, Google Gemini, Mistral, Groq,
   DeepSeek and Azure OpenAI are built in. Others are a JSON file away
-  ([docs/connectors.md](../../docs/connectors.md)). Each agent can be limited to
+  ([docs/connectors.md](https://github.com/roai-us/purser/blob/main/docs/connectors.md)). Each agent can be limited to
   some connectors.
 - **Caps and allowlists.** Daily and monthly dollar caps (UTC), a model allowlist and
   an end date for each agent.
@@ -86,7 +87,7 @@ halfway through. Run `node apps/server/dist/cli.js help` for every command.
 - **A separate admin surface.** The admin API takes the admin token or a signed-in
   browser session, never an agent key, so an agent cannot read or change anything
   there, including its own limits. The full API is in
-  [docs/admin-api.md](../../docs/admin-api.md).
+  [docs/admin-api.md](https://github.com/roai-us/purser/blob/main/docs/admin-api.md).
 - **Private local data.** Agents, usage, an audit log and provider keys set in the UI
   (`vault.json`) are kept in `~/.purser`, with files only you can read. The desktop
   app will keep provider keys in the operating system's keychain instead. The server
@@ -122,7 +123,7 @@ at API prices. Put that next to what your plan costs and you can see whether the
 pays for itself.
 
 ```bash
-node apps/server/dist/cli.js subscriptions --since 2026-11-01
+npx @roai-us/purser subscriptions --since 2026-11-01
 ```
 
 The same report is at `GET /admin/subscriptions?since=2026-11-01`. It is read-only:
@@ -163,11 +164,14 @@ flagged.
 | `PURSER_ALLOW_REMOTE`                   | unset. Set `1` to bind beyond localhost; put it behind HTTPS                                                                |
 | `PURSER_DATA_DIR`                       | `~/.purser`                                                                                                                 |
 | `PURSER_ADMIN_TOKEN`                    | generated into the data directory                                                                                           |
-| `PURSER_WEB_DIR`                        | `apps/web/dist` in this repository                                                                                          |
+| `PURSER_BASE_URL`                       | the address Purser listens on. Set it when people reach Purser at another address, such as behind HTTPS                     |
+| `PURSER_WEB_DIR`                        | the web UI inside the package, or `apps/web/dist` in a checkout                                                             |
 | `PURSER_CLAUDE_DIR`, `PURSER_CODEX_DIR` | `~/.claude`, `~/.codex`                                                                                                     |
 | `PURSER_URL` (CLI only)                 | `http://127.0.0.1:4141`                                                                                                     |
 
 ## Tests
+
+From a checkout of the repository:
 
 ```bash
 pnpm --filter @roai-us/purser test

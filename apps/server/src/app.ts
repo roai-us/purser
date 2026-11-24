@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { Hono, type Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { adminApp, apiError } from "./admin.js";
@@ -21,7 +22,12 @@ import { Vault } from "./vault.js";
 import { outcomesApp } from "./workflowapi.js";
 import { Workflows } from "./workflows.js";
 
-export const VERSION = "0.0.1";
+/** The server package's version, read from its package.json. */
+export const VERSION = (
+  JSON.parse(
+    readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+  ) as { version: string }
+).version;
 
 /** A sign-in Purser itself turns away, such as a person whose access was turned off. */
 class SignInRefused extends Error {

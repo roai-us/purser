@@ -29,3 +29,23 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm build
+      # Packs the npm packages and runs them as npx would, from a clean folder.
+      - name: Package smoke test
+        run: |
+          set -euo pipefail
+          out=$(mktemp -d)
+          pnpm --filter @roai-us/roi-core pack --pack-destination "$out"
+          pnpm --filter @roai-us/purser pack --pack-destination "$out"
+          cd "$(mktemp -d)"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund "$out"/*.tgz
+          ./node_modules/.bin/roai help | grep "ROAI Purser" >/dev/null
+          PURSER_DATA_DIR="$(mktemp -d)" ./node_modules/.bin/roai --no-open > serve.log 2>&1 &
+          pid=$!
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:4141/health >/dev/null && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:4141/health | grep '"ok":true' >/dev/null
+          curl -fsS http://127.0.0.1:4141/ | grep "<title>ROAI Purser</title>" >/dev/null
+          kill "$pid"

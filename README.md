@@ -16,6 +16,14 @@ leave your machines.
 
 ## Try it
 
+With Node 24 or later:
+
+```bash
+npx @roai-us/purser
+```
+
+It opens the web UI in your browser. Your data stays in `~/.purser`.
+
 With Docker:
 
 ```bash
@@ -23,9 +31,11 @@ docker run -d --name purser -p 127.0.0.1:4141:4141 -v purser-data:/data ghcr.io/
 docker logs purser
 ```
 
-Open the sign-in link from the log. Images are published from the first tagged
-release; until then, build one with `docker build -t purser .` from a checkout.
-[docs/docker.md](docs/docker.md) covers keys, HTTPS and backups.
+Open the sign-in link from the log. [docs/docker.md](docs/docker.md) covers keys, HTTPS
+and backups.
+
+The npm packages and the image are published from the first tagged release. Until
+then, run it from a checkout (below) or build the image with `docker build -t purser .`.
 
 From a checkout, with Node 24 and pnpm 10, `pnpm demo` starts Purser with a made-up
 fleet of 1,500 agents to look around in.
