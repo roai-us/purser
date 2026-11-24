@@ -18,6 +18,7 @@ export const NAV: Record<Role, NavItem[]> = {
   admin: [
     { to: "/", label: "Home", end: true },
     { to: "/agents", label: "Agents" },
+    { to: "/workflows", label: "Workflows" },
     { to: "/approvals", label: "Approvals", badge: true },
     { to: "/people", label: "People" },
     { to: "/departments", label: "Departments" },

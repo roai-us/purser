@@ -42,7 +42,7 @@ is.
 - [x] Workflows, results and the ROI report: a locked baseline and thresholds, results
       from agents (`POST /v1/outcomes` and MCP) and people, cost per accepted unit, net
       return, and payback and NPV from `roi-core`, every number labelled measured,
-      attributed or modelled ([roi.md](roi.md))
+      attributed or modelled, and a printable one-page report ([roi.md](roi.md))
 - [ ] The same proof against the live provider APIs (done for OpenRouter)
 
 **Next:** per-agent OpenRouter keys created through OpenRouter's key management API

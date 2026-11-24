@@ -37,6 +37,14 @@ import type {
   ServiceResult,
   SessionInfo,
   SignInOptions,
+  NewOutcome,
+  NewWorkflow,
+  Outcome,
+  Workflow,
+  WorkflowAgent,
+  WorkflowDetail,
+  WorkflowPatch,
+  WorkflowSummary,
 } from "./types";
 
 /** Fired on window when the server says the session is gone. */
@@ -216,6 +224,48 @@ export const api = {
   logs: (params: { agent?: string; before?: string; limit?: number } = {}) =>
     request<CallPage>("GET", `/admin/logs${queryString(params)}`),
   log: (id: string) => request<CallEntry>("GET", `/admin/logs/${enc(id)}`),
+
+  // Workflows and ROI (admins)
+  workflows: (status: "active" | "archived" | "all" = "active") =>
+    request<{ workflows: WorkflowSummary[] }>(
+      "GET",
+      `/admin/workflows${queryString({ status })}`,
+    ),
+  workflow: (ref: string) =>
+    request<WorkflowDetail>("GET", `/admin/workflows/${enc(ref)}`),
+  workflowReport: (ref: string, period: { from?: string; to?: string } = {}) =>
+    request<WorkflowDetail>(
+      "GET",
+      `/admin/workflows/${enc(ref)}/report${queryString(period)}`,
+    ),
+  createWorkflow: (input: NewWorkflow) =>
+    request<{ workflow: Workflow; agents: WorkflowAgent[] }>(
+      "POST",
+      "/admin/workflows",
+      input,
+    ),
+  updateWorkflow: (ref: string, patch: WorkflowPatch) =>
+    request<{ workflow: Workflow; agents: WorkflowAgent[] }>(
+      "PATCH",
+      `/admin/workflows/${enc(ref)}`,
+      patch,
+    ),
+  outcomes: (ref: string, limit = 50) =>
+    request<{ outcomes: Outcome[]; total: number }>(
+      "GET",
+      `/admin/workflows/${enc(ref)}/outcomes${queryString({ limit })}`,
+    ),
+  recordOutcome: (ref: string, input: NewOutcome) =>
+    request<{ outcome: Outcome; duplicate: boolean; locked?: boolean }>(
+      "POST",
+      `/admin/workflows/${enc(ref)}/outcomes`,
+      input,
+    ),
+  voidOutcome: (ref: string, id: string) =>
+    request<{ outcome: Outcome }>(
+      "POST",
+      `/admin/workflows/${enc(ref)}/outcomes/${enc(id)}/void`,
+    ),
 
   // People, departments and organisation settings (admins)
   people: (
