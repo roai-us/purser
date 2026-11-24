@@ -392,6 +392,20 @@ describe("config", () => {
       }).host,
     ).toBe("0.0.0.0");
     expect(isLoopback("::1")).toBe(true);
+    expect(loadConfig({}).baseUrl).toBe("http://127.0.0.1:4141");
+    expect(
+      loadConfig({ PURSER_BASE_URL: "https://purser.example.com/" }).baseUrl,
+    ).toBe("https://purser.example.com");
+    for (const bad of [
+      "purser.example.com",
+      "ftp://purser.example.com",
+      "https://purser.example.com/?x=1",
+      "https://user:pw@purser.example.com",
+    ]) {
+      expect(() => loadConfig({ PURSER_BASE_URL: bad })).toThrow(
+        /PURSER_BASE_URL/,
+      );
+    }
     expect(loadConfig({}).dataDir).toMatch(/\.purser$/);
   });
 

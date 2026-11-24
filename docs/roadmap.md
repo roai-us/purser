@@ -43,6 +43,9 @@ is.
       from agents (`POST /v1/outcomes` and MCP) and people, cost per accepted unit, net
       return, and payback and NPV from `roi-core`, every number labelled measured,
       attributed or modelled, and a printable one-page report ([roi.md](roi.md))
+- [x] A Docker image: one container on a volume, running as a non-root user, tested
+      on every pull request and published for amd64 and arm64 from version tags
+      ([docker.md](docker.md))
 - [ ] The same proof against the live provider APIs (done for OpenRouter)
 
 **Next:** per-agent OpenRouter keys created through OpenRouter's key management API

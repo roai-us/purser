@@ -62,6 +62,7 @@ export function harness(
     vault?: Vault;
     org?: Org;
     demoSignIn?: boolean;
+    baseUrl?: string;
   } = {},
 ): Harness {
   const store = options.store ?? new Store();
@@ -92,6 +93,7 @@ export function harness(
     org,
     workflows,
     demoSignIn: options.demoSignIn,
+    baseUrl: options.baseUrl,
     customConnectors: options.customConnectors,
     webDir: options.webDir,
     fetch:

@@ -148,31 +148,42 @@ function runServer(args: string[]): number {
     adminToken: token,
     subscriptionDirs: config.subscriptionDirs,
   });
-  serve({ fetch: app.fetch, hostname: config.host, port: config.port }, () => {
-    const base = config.baseUrl;
-    const link = `${base}/login?code=${sessions.issueLoginCode()}`;
-    process.stdout.write(
-      [
-        `ROAI Purser ${VERSION} listening on ${base}`,
-        `Data:        ${config.dataDir}`,
-        `Admin token: ${process.env.PURSER_ADMIN_TOKEN ? "from PURSER_ADMIN_TOKEN" : adminTokenFile(config.dataDir)}`,
-        `Agents:      ${store.agentCount()}`,
-        demoSignIn
-          ? "Demo sign-in: on (pick a person on the sign-in page)"
-          : "",
-        custom.manifests.length > 0
-          ? `Custom connectors: ${custom.manifests.map((m) => m.id).join(", ")}`
-          : "",
-        "",
-        `Open Purser: ${link}`,
-        "(This sign-in link works once, for 15 minutes.)",
-        "",
-      ]
-        .filter((line, i, all) => line !== "" || all[i - 1] !== "")
-        .join("\n"),
-    );
-    if (!values["no-open"]) openBrowser(link);
-  });
+  const server = serve(
+    { fetch: app.fetch, hostname: config.host, port: config.port },
+    () => {
+      const base = config.baseUrl;
+      const link = `${base}/login?code=${sessions.issueLoginCode()}`;
+      process.stdout.write(
+        [
+          `ROAI Purser ${VERSION} listening on ${base}`,
+          `Data:        ${config.dataDir}`,
+          `Admin token: ${process.env.PURSER_ADMIN_TOKEN ? "from PURSER_ADMIN_TOKEN" : adminTokenFile(config.dataDir)}`,
+          `Agents:      ${store.agentCount()}`,
+          demoSignIn
+            ? "Demo sign-in: on (pick a person on the sign-in page)"
+            : "",
+          custom.manifests.length > 0
+            ? `Custom connectors: ${custom.manifests.map((m) => m.id).join(", ")}`
+            : "",
+          "",
+          `Open Purser: ${link}`,
+          "(This sign-in link works once, for 15 minutes.)",
+          "",
+        ]
+          .filter((line, i, all) => line !== "" || all[i - 1] !== "")
+          .join("\n"),
+      );
+      if (!values["no-open"]) openBrowser(link);
+    },
+  );
+  // Every write is finished before it returns, so stopping now loses nothing.
+  // In a container Purser is process 1, which gets no default handlers.
+  for (const signal of ["SIGTERM", "SIGINT"] as const) {
+    process.once(signal, () => {
+      server.close();
+      process.exit(0);
+    });
+  }
   return 0;
 }
 

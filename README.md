@@ -8,11 +8,27 @@ your laptop, on one small server, or in your own cloud. Your keys and your data 
 leave your machines.
 
 > **Status: early development.** Nothing here is ready to run in production yet. We
-> are in phase 0. The shared ROI math is done. A [gateway prototype](apps/server)
-> already gives each agent its own key, caps its spend and stops it mid-stream, for
-> OpenAI, Anthropic and OpenRouter. It can also show what your Claude Code and Codex
-> subscription usage would have cost at API prices. Watch
-> the repo or read the [roadmap](docs/roadmap.md) to follow along.
+> are working toward the first release. A [gateway](apps/server) already gives each
+> agent its own key, caps its spend and stops it mid-stream, across nine AI providers
+> and any you add. A web UI runs the fleet, and [workflows](docs/roi.md) tie the spend
+> to the work it paid for. Watch the repo or read the [roadmap](docs/roadmap.md) to
+> follow along.
+
+## Try it
+
+With Docker:
+
+```bash
+docker run -d --name purser -p 127.0.0.1:4141:4141 -v purser-data:/data ghcr.io/roai-us/purser
+docker logs purser
+```
+
+Open the sign-in link from the log. Images are published from the first tagged
+release; until then, build one with `docker build -t purser .` from a checkout.
+[docs/docker.md](docs/docker.md) covers keys, HTTPS and backups.
+
+From a checkout, with Node 24 and pnpm 10, `pnpm demo` starts Purser with a made-up
+fleet of 1,500 agents to look around in.
 
 ## Why "Purser"
 
@@ -135,9 +151,9 @@ Purser puts into practice what ROAI publishes at [roai.us](https://roai.us), inc
 | Path                | What it is                                                      |
 | ------------------- | --------------------------------------------------------------- |
 | `packages/roi-core` | The ROI math shared with the roai.us calculator. 100% coverage. |
-| `apps/server`       | Gateway, admin API and `roai` CLI (phase 0 prototype)           |
-| `apps/web` (coming) | Web UI                                                          |
-| `docs/`             | Architecture and roadmap                                        |
+| `apps/server`       | Gateway, admin API, MCP server and `roai` CLI                   |
+| `apps/web`          | Web UI                                                          |
+| `docs/`             | Architecture, guides and roadmap                                |
 
 ## Development
 
