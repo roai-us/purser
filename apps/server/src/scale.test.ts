@@ -329,6 +329,7 @@ describe("demo seed", () => {
         usage: [],
         audit: [],
         calls: [],
+        workflows: { workflows: [], outcomes: [], audit: [] },
         org: {
           people: [],
           departments: [],

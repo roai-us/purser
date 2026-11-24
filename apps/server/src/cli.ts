@@ -25,6 +25,7 @@ import { DEFAULT_PRICES } from "./prices.js";
 import { Store } from "./store.js";
 import type { SubscriptionReport } from "./subscriptions.js";
 import type { PublicAgent } from "./types.js";
+import { Workflows } from "./workflows.js";
 
 interface ApiError {
   error?: { code?: string; message?: string } | string;
@@ -118,6 +119,7 @@ function runServer(args: string[]): number {
   const sessions = new Sessions(() => new Date());
   const logs = new CallLog(config.dataDir, () => new Date());
   const org = new Org(config.dataDir, () => new Date());
+  const workflows = new Workflows(config.dataDir);
   // The demo's pick-a-person sign-in has no password, so it only ever runs
   // on this computer, and only when asked for.
   const demoSignIn =
@@ -136,6 +138,7 @@ function runServer(args: string[]): number {
     sessions,
     logs,
     org,
+    workflows,
     demoSignIn,
     baseUrl: config.baseUrl,
     webDir: config.webDir,

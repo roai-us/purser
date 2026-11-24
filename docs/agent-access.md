@@ -107,16 +107,17 @@ between stdin and the server:
 
 ### Tools
 
-| Tool                  | What it does                                                               |
-| --------------------- | -------------------------------------------------------------------------- |
-| `get_my_account`      | Owner, department, state, limits, spend and key expiry                     |
-| `list_my_services`    | The services it may use, with allowed models, limits and spend             |
-| `list_models`         | The models a service offers that it may use                                |
-| `ask_model`           | Puts one question to a model on one of its services and returns the answer |
-| `get_my_usage`        | Recent spending, in total and by service and model                         |
-| `request_service`     | Asks for another service. A person decides.                                |
-| `request_more_budget` | Asks for a one-time raise. A person decides.                               |
-| `check_my_requests`   | What happened to its requests                                              |
+| Tool                  | What it does                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------- |
+| `get_my_account`      | Owner, department, state, limits, spend and key expiry                                |
+| `list_my_services`    | The services it may use, with allowed models, limits and spend                        |
+| `list_models`         | The models a service offers that it may use                                           |
+| `ask_model`           | Puts one question to a model on one of its services and returns the answer            |
+| `get_my_usage`        | Recent spending, in total and by service and model                                    |
+| `request_service`     | Asks for another service. A person decides.                                           |
+| `request_more_budget` | Asks for a one-time raise. A person decides.                                          |
+| `check_my_requests`   | What happened to its requests                                                         |
+| `report_outcome`      | Records a result for its workflow: accepted, reworked or discarded ([roi.md](roi.md)) |
 
 ### What it can't do
 
