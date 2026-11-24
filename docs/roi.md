@@ -63,8 +63,8 @@ Each result can carry a `count` (a tally), the review minutes for all of them, a
 
 2. **Over MCP,** with the `report_outcome` tool ([agent-access.md](agent-access.md)).
 
-3. **By a person,** through the admin API, for teams that will never wire up an agent
-   to report. A tally can be dated in the past, but not before the workflow was set up.
+3. **By a person,** under Workflows in the web UI, or through the admin API, for teams
+   that will never wire up an agent to report. A tally can be dated in the past, but not before the workflow was set up.
 
 Every result records who reported it. Results reported by agents are counted, and the
 report says what share came from the agents themselves rather than a person.
@@ -128,6 +128,22 @@ shorter than a week, results with no metered spend (the agents may be calling
 providers directly), calls priced by estimate, default review time, results reported by
 the agents themselves, an estimated baseline, modelled attribution, and changes made
 after the lock.
+
+## In the web UI
+
+Admins find **Workflows** in the sidebar:
+
+- **The list** shows each workflow's verdict and its last 30 days: results, acceptance
+  rate, cost per accepted unit against the cost before, and net return a month.
+- **A workflow's page** shows the verdict, the caveats and the rules, takes tallies,
+  and lists results, where a mistaken one can be voided. Once the rules lock, the edit
+  form shows them but won't change them.
+- **The one-page report** follows the framework's five sections: the workflow and its
+  unit, the baseline, attribution, the full cost, and the net return with its caveats.
+  It names the number that would stop the program, takes any period, and prints on
+  one page.
+
+`roai demo-seed` adds four example workflows, one for each verdict.
 
 ## Admin API
 

@@ -16,6 +16,9 @@ import { MyAgentsPage } from "./pages/MyAgents";
 import { ApprovalsPage, RequestsPage } from "./pages/Requests";
 import { PeoplePage } from "./pages/People";
 import { DepartmentsPage } from "./pages/Departments";
+import { WorkflowsPage } from "./pages/Workflows";
+import { WorkflowDetailPage } from "./pages/WorkflowDetail";
+import { RoiReportPage } from "./pages/RoiReport";
 import type { ViewerInfo } from "./api/types";
 import { ViewerProvider } from "./lib/agentApi";
 
@@ -78,6 +81,9 @@ export function App() {
           <Route element={shell}>
             <Route index element={<HomePage />} />
             <Route path="agents" element={<AgentsPage />} />
+            <Route path="workflows" element={<WorkflowsPage />} />
+            <Route path="workflows/:ref" element={<WorkflowDetailPage />} />
+            <Route path="workflows/:ref/report" element={<RoiReportPage />} />
             <Route path="approvals" element={<ApprovalsPage />} />
             <Route path="people" element={<PeoplePage />} />
             <Route path="departments" element={<DepartmentsPage />} />
