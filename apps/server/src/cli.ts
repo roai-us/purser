@@ -34,7 +34,8 @@ interface ApiError {
 const HELP = `ROAI Purser ${VERSION}
 
 Usage:
-  roai serve [--no-open]             Start Purser and open the web UI in your browser
+  roai serve [--no-open]             Start Purser and open the web UI in your browser.
+                                     "roai" on its own does the same.
   roai agent add <name> --owner <who> [--daily <usd>] [--monthly <usd>]
                  [--models <id,id>] [--purpose <text>] [--ends <iso date>]
   roai agent list                    List agents with today's and this month's spend
@@ -65,6 +66,8 @@ Environment:
 
 async function main(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
+  // `npx @roai-us/purser` and `roai --no-open` start the server.
+  if (command === undefined || command === "--no-open") return runServer(argv);
   switch (command) {
     case "serve":
       return runServer(rest);
@@ -91,7 +94,6 @@ async function main(argv: string[]): Promise<number> {
     case "help":
     case "--help":
     case "-h":
-    case undefined:
       process.stdout.write(HELP);
       return 0;
     default:

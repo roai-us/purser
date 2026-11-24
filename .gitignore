@@ -11,3 +11,9 @@ coverage/
 .purser/
 .smoke/
 .demo-data/
+# Copied into the server package when it is packed
+apps/server/web/
+apps/server/LICENSE
+apps/server/NOTICE
+apps/server/LICENSING.md
+*.tgz

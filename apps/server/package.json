@@ -1,19 +1,51 @@
 {
   "name": "@roai-us/purser",
-  "version": "0.0.1",
-  "private": true,
-  "description": "ROAI Purser server: gateway and control plane. Phase 0 prototype.",
+  "version": "0.1.0-alpha.1",
+  "description": "ROAI Purser: a free, self-hosted control panel for AI agents and AI spend. Run it with npx @roai-us/purser.",
   "license": "Elastic-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/roai-us/purser.git",
+    "directory": "apps/server"
+  },
+  "homepage": "https://github.com/roai-us/purser#readme",
+  "bugs": {
+    "url": "https://github.com/roai-us/purser/issues"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "llm",
+    "gateway",
+    "ai-spend",
+    "roi",
+    "mcp",
+    "self-hosted"
+  ],
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "bin": {
     "roai": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "web",
+    "LICENSE",
+    "NOTICE",
+    "LICENSING.md"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "dev": "node --experimental-strip-types src/cli.ts serve"
+    "dev": "node --experimental-strip-types src/cli.ts serve",
+    "prepack": "node scripts/prepack.mjs"
   },
   "dependencies": {
     "@roai-us/roi-core": "workspace:*",

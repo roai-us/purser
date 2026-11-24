@@ -1,0 +1,69 @@
+name: Release
+
+# A version tag (v0.1.0-alpha.1) publishes the npm packages. The Docker
+# workflow publishes the image from the same tag.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  npm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write # npm provenance: links each package to this run
+    steps:
+      # Actions are pinned to full commit hashes. Dependabot keeps them current.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - name: The tag must match the server's version
+        run: |
+          version=$(node -p 'require("./apps/server/package.json").version')
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match apps/server/package.json ($version)."
+            exit 1
+          fi
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm build
+      - name: Publish @roai-us/roi-core, if this version is new
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
+        run: |
+          version=$(node -p 'require("./packages/roi-core/package.json").version')
+          if npm view "@roai-us/roi-core@$version" version >/dev/null 2>&1; then
+            echo "@roai-us/roi-core $version is already on npm."
+          else
+            pnpm --filter @roai-us/roi-core publish --no-git-checks
+          fi
+      - name: Publish @roai-us/purser
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
+        run: pnpm --filter @roai-us/purser publish --no-git-checks
+      - name: Check that npx runs it
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          cd "$(mktemp -d)"
+          for i in $(seq 1 10); do
+            npx -y "@roai-us/purser@$version" help | grep -q "ROAI Purser $version" && exit 0
+            sleep 15
+          done
+          echo "npx could not run @roai-us/purser@$version."
+          exit 1
