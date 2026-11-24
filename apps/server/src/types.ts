@@ -175,6 +175,11 @@ export interface AuditEvent {
     | "provider.key_rejected"
     | "provider.old_keys_deleted"
     | "provider.key_removed"
+    | "workflow.created"
+    | "workflow.updated"
+    | "workflow.locked"
+    | "outcome.recorded"
+    | "outcome.voided"
     | "request.denied";
   agentId?: string | undefined;
   detail?: Record<string, unknown> | undefined;

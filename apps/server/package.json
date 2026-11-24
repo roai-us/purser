@@ -16,6 +16,7 @@
     "dev": "node --experimental-strip-types src/cli.ts serve"
   },
   "dependencies": {
+    "@roai-us/roi-core": "workspace:*",
     "@hono/node-server": "^2.1.9",
     "hono": "^4.13.19",
     "zod": "^4.6.7"

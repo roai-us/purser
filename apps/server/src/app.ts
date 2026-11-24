@@ -18,6 +18,8 @@ import { serveUi } from "./static.js";
 import type { Store } from "./store.js";
 import type { SubscriptionDirs } from "./subscriptions.js";
 import { Vault } from "./vault.js";
+import { outcomesApp } from "./workflowapi.js";
+import { Workflows } from "./workflows.js";
 
 export const VERSION = "0.0.1";
 
@@ -46,6 +48,8 @@ export interface AppDeps {
   logs?: CallLog | undefined;
   /** People, departments and requests. Without one, they live in memory only. */
   org?: Org | undefined;
+  /** Workflows and their results. Without one, they live in memory only. */
+  workflows?: Workflows | undefined;
   /**
    * Lets anyone pick a demo person on the sign-in page, with no password.
    * Only for the demo on this computer: never turn it on for real data.
@@ -62,7 +66,15 @@ export interface AppDeps {
 }
 
 /** Paths the web UI never answers, so a typo there is a clear 404, not the app. */
-const API_PREFIXES = ["/admin", "/me", "/auth", "/login", "/health", "/mcp"];
+const API_PREFIXES = [
+  "/admin",
+  "/me",
+  "/auth",
+  "/login",
+  "/health",
+  "/mcp",
+  "/v1",
+];
 
 /**
  * One process, two surfaces: the gateway that agents call, and the admin API
@@ -74,6 +86,7 @@ export function createApp(deps: AppDeps): Hono {
   const sessions = deps.sessions ?? new Sessions(deps.now);
   const logs = deps.logs ?? new CallLog(null, deps.now);
   const org = deps.org ?? new Org(null, deps.now);
+  const workflows = deps.workflows ?? new Workflows();
   const registry = new Registry({
     envKeys: deps.providerKeys ?? {},
     envUpstreams: deps.upstreams ?? {},
@@ -326,7 +339,7 @@ export function createApp(deps: AppDeps): Hono {
   app.route(
     "/admin",
     adminApp(
-      { ...deps, registry, vault, sessions, logs, org },
+      { ...deps, registry, vault, sessions, logs, org, workflows },
       deps.adminToken,
     ),
   );
@@ -335,7 +348,8 @@ export function createApp(deps: AppDeps): Hono {
     selfApp({ ...deps, registry, sessions, org }, deps.adminToken),
   );
 
-  app.route("/mcp", mcpApp({ ...gateway, org, version: VERSION }));
+  app.route("/mcp", mcpApp({ ...gateway, org, workflows, version: VERSION }));
+  app.route("/v1", outcomesApp({ ...deps, workflows }));
 
   for (const provider of registry.providers) {
     app.all(`${provider.mount}/*`, (c) =>

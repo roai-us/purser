@@ -4,7 +4,8 @@
     "rootDir": "src",
     "outDir": "dist",
     "resolveJsonModule": true,
-    "types": ["node"]
+    "types": ["node"],
+    "customConditions": ["purser-source"]
   },
   "include": ["src"]
 }

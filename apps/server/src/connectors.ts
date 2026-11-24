@@ -261,6 +261,9 @@ const RESERVED_IDS = new Set([
   "assets",
   "static",
   "api",
+  "me",
+  "mcp",
+  "v1",
 ]);
 
 export function isLoopbackHost(host: string): boolean {
