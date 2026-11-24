@@ -442,6 +442,10 @@ legend {
   padding: 0;
   overflow: hidden;
 }
+/* A heading inside an edge-to-edge card keeps the card's own padding. */
+.card.flush > .card-head {
+  padding: 18px 20px 0;
+}
 .card-head {
   display: flex;
   align-items: center;

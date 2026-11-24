@@ -40,8 +40,10 @@ and counts the rest.
 
 ## Channels
 
-Add channels in the admin API, or in the web UI once it lands. Each channel gets every
-type, or only the types you choose, and can be paused.
+Admins add channels under **Alerts** in the web UI, or through the admin API. Each
+channel gets every type, or only the types you choose, and can be paused, tested or
+removed. The same page sets when to alert and lists the newest alerts, with where each
+one was delivered.
 
 | Kind      | Gets                                                                                  |
 | --------- | ------------------------------------------------------------------------------------- |

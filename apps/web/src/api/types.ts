@@ -735,3 +735,73 @@ export interface NewOutcome {
   note?: string;
   at?: string;
 }
+
+// Alerts
+
+export type AlertType =
+  | "agent.near_limit"
+  | "agent.at_limit"
+  | "agent.spend_spike"
+  | "agent.stopped"
+  | "key.expiring"
+  | "key.expired"
+  | "workflow.stop"
+  | "request.waiting";
+
+export type ChannelKind = "webhook" | "slack" | "discord";
+
+export interface AlertSettings {
+  nearLimitPercent: number;
+  spikeMultiple: number;
+  spikeMinUsd: number;
+  keyExpiringDays: number;
+}
+
+export interface AlertChannel {
+  id: string;
+  name: string;
+  kind: ChannelKind;
+  /** Empty means every type. */
+  events: AlertType[];
+  enabled: boolean;
+  createdAt: string;
+  urlHint: string;
+  signed: boolean;
+  lastDelivery?:
+    { at: string; ok: boolean; error?: string | undefined } | undefined;
+}
+
+export interface AlertDelivery {
+  channelId: string;
+  channelName: string;
+  ok: boolean;
+  attempts: number;
+  status?: number | undefined;
+  error?: string | undefined;
+}
+
+export interface AlertRecord {
+  id: string;
+  type: AlertType;
+  severity: "info" | "warning" | "critical";
+  at: string;
+  title: string;
+  text: string;
+  url: string;
+  count: number;
+  deliveries: AlertDelivery[];
+}
+
+export interface AlertsView {
+  settings: AlertSettings;
+  channels: AlertChannel[];
+  types: { type: AlertType; words: string }[];
+  recent: AlertRecord[];
+}
+
+export interface NewChannel {
+  name: string;
+  kind: ChannelKind;
+  url: string;
+  events: AlertType[];
+}

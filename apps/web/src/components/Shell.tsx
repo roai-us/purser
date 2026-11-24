@@ -25,6 +25,7 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: "/logs", label: "Call log" },
     { to: "/providers", label: "Providers" },
     { to: "/activity", label: "Activity" },
+    { to: "/alerts", label: "Alerts" },
     { to: "/security", label: "Security" },
     { to: "/settings", label: "Settings" },
   ],

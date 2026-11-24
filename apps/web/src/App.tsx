@@ -19,6 +19,7 @@ import { DepartmentsPage } from "./pages/Departments";
 import { WorkflowsPage } from "./pages/Workflows";
 import { WorkflowDetailPage } from "./pages/WorkflowDetail";
 import { RoiReportPage } from "./pages/RoiReport";
+import { AlertsPage } from "./pages/Alerts";
 import type { ViewerInfo } from "./api/types";
 import { ViewerProvider } from "./lib/agentApi";
 
@@ -90,6 +91,7 @@ export function App() {
             <Route path="providers" element={<ProvidersPage />} />
             <Route path="logs" element={<LogsPage />} />
             <Route path="activity" element={<ActivityPage />} />
+            <Route path="alerts" element={<AlertsPage />} />
             <Route path="security" element={<SecurityPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="requests" element={<RequestsPage />} />

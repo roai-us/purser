@@ -1,0 +1,80 @@
+/* The Alerts page. Cobalt Depth tokens from styles.css. */
+
+.channels-table td,
+.channels-table th {
+  vertical-align: top;
+}
+.channels-table tr.paused th,
+.channels-table tr.paused td {
+  color: var(--muted);
+}
+.plain-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.delivery {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 8px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid var(--line);
+}
+.delivery.ok {
+  color: var(--success);
+  border-color: #bfe3cd;
+  background: #f1faf5;
+}
+.delivery.failed {
+  color: var(--error);
+  border-color: #f2c9c9;
+  background: var(--error-wash);
+}
+
+.event-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 6px 16px;
+  padding-left: 28px;
+}
+
+.alert-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.alert-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--line);
+}
+.alert-item:first-child {
+  border-top: none;
+}
+
+.severity {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 9px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.severity-warning {
+  color: #8a5a00;
+  border-color: #f0d9a8;
+  background: #fdf8ec;
+}
+.severity-critical {
+  color: var(--error);
+  border-color: #f2c9c9;
+  background: var(--error-wash);
+}
