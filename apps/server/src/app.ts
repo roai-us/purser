@@ -19,6 +19,7 @@ import { serveUi } from "./static.js";
 import type { Store } from "./store.js";
 import type { SubscriptionDirs } from "./subscriptions.js";
 import { Vault } from "./vault.js";
+import { Alerts } from "./alerts.js";
 import { outcomesApp } from "./workflowapi.js";
 import { Workflows } from "./workflows.js";
 
@@ -56,6 +57,8 @@ export interface AppDeps {
   org?: Org | undefined;
   /** Workflows and their results. Without one, they live in memory only. */
   workflows?: Workflows | undefined;
+  /** Alerts. Without one, its settings live in memory only. */
+  alerts?: Alerts | undefined;
   /**
    * Lets anyone pick a demo person on the sign-in page, with no password.
    * Only for the demo on this computer: never turn it on for real data.
@@ -102,6 +105,16 @@ export function createApp(deps: AppDeps): Hono {
     fetch: deps.fetch,
     now: deps.now,
   });
+  const alerts =
+    deps.alerts ??
+    new Alerts({
+      store: deps.store,
+      vault,
+      fetch: deps.fetch,
+      now: deps.now,
+      baseUrl: registry.baseUrl,
+    });
+  alerts.watchRequests((id) => org.getRequest(id)?.status);
   const gateway = {
     ...deps,
     registry,
@@ -348,7 +361,7 @@ export function createApp(deps: AppDeps): Hono {
   app.route(
     "/admin",
     adminApp(
-      { ...deps, registry, vault, sessions, logs, org, workflows },
+      { ...deps, registry, vault, sessions, logs, org, workflows, alerts },
       deps.adminToken,
     ),
   );

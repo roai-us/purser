@@ -2,6 +2,7 @@ import { Hono, type Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
 import { apiError } from "./admin.js";
+import type { Alerts } from "./alerts.js";
 import { agentState, findAgentByKey, noteKeyExpired } from "./control.js";
 import type { ControlDeps } from "./control.js";
 import { buildReport, defaultPeriod, periodDays, type Period } from "./roi.js";
@@ -768,4 +769,38 @@ export function outcomesApp(deps: WorkflowDeps): Hono {
 
   app.notFound((c) => fail(c, 404, "not_found", "Not found."));
   return app;
+}
+
+const METRIC_WORDS = {
+  cost_per_accepted_unit: "cost per accepted unit",
+  acceptance_rate: "acceptance rate",
+  net_monthly_return: "net return a month",
+} as const;
+
+/** "Stop if cost per accepted unit is above $25.00". */
+export function stopRuleText(t: Workflow["stopIf"]): string {
+  const value =
+    t.metric === "acceptance_rate"
+      ? `${Math.round(t.value * 1000) / 10}%`
+      : new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+        }).format(t.value);
+  return `Stop if ${METRIC_WORDS[t.metric]} is ${t.when} ${value}`;
+}
+
+/** Runs the alert sweep with each active workflow's verdict for the last 30 days. */
+export function sweepAlerts(deps: WorkflowDeps & { alerts: Alerts }): void {
+  const period = defaultPeriod(deps.now());
+  deps.alerts.sweep(
+    deps.workflows
+      .list()
+      .filter((w) => w.status === "active")
+      .map((w) => ({
+        id: w.id,
+        name: w.name,
+        verdict: reportFor(deps, w, period).verdict,
+        stopRule: stopRuleText(w.stopIf),
+      })),
+  );
 }
