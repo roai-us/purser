@@ -62,8 +62,32 @@ export function loadConfig(env: Env): ServerConfig {
     },
     upstreams,
     webDir: env.PURSER_WEB_DIR ?? defaultWebDir(),
-    baseUrl: `http://${host.includes(":") ? `[${host}]` : host}:${port}`,
+    baseUrl: env.PURSER_BASE_URL
+      ? baseUrlFrom(env.PURSER_BASE_URL)
+      : `http://${host.includes(":") ? `[${host}]` : host}:${port}`,
   };
+}
+
+/**
+ * The address people and agents reach Purser at, when it isn't the one it
+ * listens on: inside a container, or behind an HTTPS proxy.
+ */
+function baseUrlFrom(value: string): string {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`PURSER_BASE_URL is not a URL: ${value}`);
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error("PURSER_BASE_URL must start with http:// or https://.");
+  }
+  if (url.search || url.hash || url.username || url.password) {
+    throw new Error(
+      "PURSER_BASE_URL takes a plain address, like https://purser.example.com.",
+    );
+  }
+  return trimSlash(url.toString());
 }
 
 /** "AZURE_OPENAI" becomes "azure-openai". */

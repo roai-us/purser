@@ -113,7 +113,10 @@ export function createApp(deps: AppDeps): Hono {
       sameSite: "Strict",
       path: "/",
       maxAge: SESSION_TTL_MS / 1000,
-      secure: new URL(c.req.url).protocol === "https:",
+      // Behind a proxy that ends HTTPS, the request itself arrives as http.
+      secure:
+        registry.baseUrl.startsWith("https:") ||
+        new URL(c.req.url).protocol === "https:",
     });
   };
 

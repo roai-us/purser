@@ -46,6 +46,12 @@ describe("signing in to the web UI", () => {
       `https://purser.example/login?code=${fresh}`,
     );
     expect(secure.headers.get("set-cookie")).toMatch(/Secure/);
+    // Behind a proxy that ends HTTPS, the request arrives as plain http.
+    const proxied = harness({ baseUrl: "https://purser.example.com" });
+    const behind = await proxied.app.request(
+      `http://127.0.0.1:4141/login?code=${proxied.sessions.issueLoginCode()}`,
+    );
+    expect(behind.headers.get("set-cookie")).toMatch(/Secure/);
     const stale = h.sessions.issueLoginCode();
     h.clock.now = new Date(h.clock.now.getTime() + 16 * 60_000);
     const res = await h.app.request(`/login?code=${stale}`);

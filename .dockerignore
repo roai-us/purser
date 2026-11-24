@@ -1,0 +1,13 @@
+# Only what the image build needs. Keep data, keys and local builds out.
+**/node_modules
+**/dist
+**/coverage
+**/.smoke
+.demo-data
+.git
+.github
+.vscode
+.idea
+*.log
+**/*.tsbuildinfo
+docs
