@@ -89,6 +89,7 @@ describe("connecting", () => {
       "get_my_usage",
       "list_models",
       "list_my_services",
+      "report_outcome",
       "request_more_budget",
       "request_service",
     ]);

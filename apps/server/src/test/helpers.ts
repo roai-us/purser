@@ -9,6 +9,7 @@ import { SESSION_COOKIE, Sessions } from "../sessions.js";
 import type { SubscriptionDirs } from "../subscriptions.js";
 import type { AgentLimits } from "../types.js";
 import { Vault } from "../vault.js";
+import { Workflows } from "../workflows.js";
 import {
   mockUpstream,
   REAL_ANTHROPIC_KEY,
@@ -25,6 +26,7 @@ export interface Harness {
   vault: Vault;
   sessions: Sessions;
   org: Org;
+  workflows: Workflows;
   upstream: ReturnType<typeof mockUpstream>;
   clock: { now: Date };
   addAgent(
@@ -69,6 +71,7 @@ export function harness(
   const vault = options.vault ?? new Vault();
   const sessions = new Sessions(() => clock.now);
   const org = options.org ?? new Org(null, () => clock.now);
+  const workflows = new Workflows();
   const app = createApp({
     store,
     inflight,
@@ -87,6 +90,7 @@ export function harness(
     vault,
     sessions,
     org,
+    workflows,
     demoSignIn: options.demoSignIn,
     customConnectors: options.customConnectors,
     webDir: options.webDir,
@@ -107,6 +111,7 @@ export function harness(
     vault,
     sessions,
     org,
+    workflows,
     upstream,
     clock,
     addAgent(name = "support-bot", limits = {}, extra = {}) {

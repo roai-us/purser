@@ -15,9 +15,16 @@ import type { Provider } from "./providers.js";
 import type { Registry } from "./registry.js";
 import { askForRaise, askForService, Refusal } from "./selfservice.js";
 import type { Agent } from "./types.js";
+import {
+  MAX_AGENT_COUNT,
+  OutcomeRefusal,
+  reportAgentOutcome,
+} from "./workflowapi.js";
+import type { Workflows } from "./workflows.js";
 
 export interface McpDeps extends GatewayDeps {
   org: Org;
+  workflows: Workflows;
   registry: Registry;
   version: string;
 }
@@ -34,6 +41,8 @@ const MAX_WAITING_REQUESTS = 5;
 const INSTRUCTIONS = `ROAI Purser is the account this agent uses for AI services. Everything here acts for this agent alone, under the spending limits its owner set.
 
 Start with list_my_services to see what you may use, then ask_model to put a question to another model, for example a second opinion on a code change. Check get_my_account when a call is refused.
+
+If your owner tracks your work as a workflow, report each result with report_outcome: accepted, reworked or discarded, as a person judged it.
 
 If you need a service or budget you don't have, use request_service or request_more_budget, and say why. A person decides. Don't retry a refused call in a loop.
 
@@ -713,6 +722,90 @@ function buildTools(deps: McpDeps): Tool[] {
             ),
           ),
         );
+      },
+    },
+    {
+      name: "report_outcome",
+      title: "Report a result",
+      description:
+        "Records the result of a unit of work for the workflow this agent is part of, so its owner can see the cost per accepted result. Report what a person or a check decided, not your own opinion of the work.",
+      readOnly: false,
+      schema: z
+        .object({
+          result: z
+            .enum(["accepted", "reworked", "discarded"])
+            .describe(
+              "accepted: used, perhaps after small fixes. reworked: a person redid most of it. discarded: thrown away.",
+            ),
+          workflow: z
+            .string()
+            .min(1)
+            .max(200)
+            .optional()
+            .describe(
+              "Only needed if this agent is in more than one workflow.",
+            ),
+          count: z
+            .number()
+            .int()
+            .min(1)
+            .max(MAX_AGENT_COUNT)
+            .optional()
+            .describe("Units with this result. Defaults to 1."),
+          review_minutes: z
+            .number()
+            .min(0)
+            .max(10_000_000)
+            .optional()
+            .describe("Minutes a person spent reviewing them, if known."),
+          ref: z
+            .string()
+            .trim()
+            .min(1)
+            .max(200)
+            .optional()
+            .describe(
+              "Your own id for this result, such as a ticket number, so a retry isn't counted twice.",
+            ),
+          note: z.string().trim().max(500).optional(),
+        })
+        .strict(),
+      run: (
+        { agent }: Ctx,
+        args: {
+          result: "accepted" | "reworked" | "discarded";
+          workflow?: string;
+          count?: number;
+          review_minutes?: number;
+          ref?: string;
+          note?: string;
+        },
+      ) => {
+        try {
+          const done = reportAgentOutcome(deps, agent, {
+            result: args.result,
+            workflow: args.workflow,
+            count: args.count,
+            reviewMinutes: args.review_minutes,
+            ref: args.ref,
+            note: args.note,
+          });
+          return ok(
+            {
+              id: done.outcome.id,
+              workflow: done.workflow.name,
+              result: done.outcome.result,
+              count: done.outcome.count,
+              duplicate: done.duplicate,
+            },
+            done.duplicate
+              ? `Already recorded as ${done.outcome.id}.`
+              : `Recorded ${done.outcome.count} ${done.outcome.result} for ${done.workflow.name}.`,
+          );
+        } catch (err) {
+          if (err instanceof OutcomeRefusal) return fail(err.message);
+          throw err;
+        }
       },
     },
     {
