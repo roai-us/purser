@@ -7,7 +7,7 @@
 # See docs/docker.md for keys, HTTPS and the demo.
 
 # Both stages use the same base image, pinned by digest. Dependabot keeps it current.
-FROM node:24-bookworm-slim@sha256:873f586f3794f52281bd039bf02c048a0be08fde619338f9941bad1eb6b34530 AS build
+FROM node:25-bookworm-slim@sha256:81db02c4b671288a03915da9534dbd54f96d0e7c24d80ccc54f5b36b2e684370 AS build
 WORKDIR /repo
 RUN npm install -g pnpm@10.28.2 && npm cache clean --force
 # Manifests first, so dependencies are cached until they change.
@@ -21,7 +21,7 @@ COPY packages packages
 RUN pnpm build \
   && pnpm --filter @roai-us/purser deploy --prod --legacy /out
 
-FROM node:24-bookworm-slim@sha256:873f586f3794f52281bd039bf02c048a0be08fde619338f9941bad1eb6b34530
+FROM node:25-bookworm-slim@sha256:81db02c4b671288a03915da9534dbd54f96d0e7c24d80ccc54f5b36b2e684370
 ARG VERSION=dev
 LABEL org.opencontainers.image.title="ROAI Purser" \
       org.opencontainers.image.description="A free, self-hosted control panel for AI agents and AI spend." \
