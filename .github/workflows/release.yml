@@ -50,13 +50,13 @@ jobs:
           if npm view "@roai-us/roi-core@$version" version >/dev/null 2>&1; then
             echo "@roai-us/roi-core $version is already on npm."
           else
-            pnpm --filter @roai-us/roi-core publish --no-git-checks
+            pnpm --filter @roai-us/roi-core publish --no-git-checks --access public
           fi
       - name: Publish @roai-us/purser
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
-        run: pnpm --filter @roai-us/purser publish --no-git-checks
+        run: pnpm --filter @roai-us/purser publish --no-git-checks --access public
       - name: Check that npx runs it
         run: |
           version=${GITHUB_REF_NAME#v}

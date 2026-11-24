@@ -33,9 +33,15 @@ The release workflow publishes to npm with a token kept as the repository secret
 3. Save it in GitHub under the repository's Settings, Secrets and variables, Actions,
    as `NPM_TOKEN`.
 
-Once both packages exist on npm, a token is no longer needed: set up trusted publishing
-for each package on npmjs.com, pointing at this repository and `release.yml`, then
-delete the token and the secret.
+Once both packages exist on npm, set up trusted publishing for each package on
+npmjs.com, pointing at this repository and `release.yml`, then delete the token and the
+secret. Do this soon: npm is restricting tokens that bypass two-factor authentication
+for publishing, and says so in the publish log.
+
+The first image the Docker workflow publishes is private, because GitHub makes new
+organization packages private. Make it public once: open the `purser` package under
+the roai-us organization's Packages tab, then Package settings, Change visibility,
+Public. Later versions keep that setting.
 
 Every package is published with provenance, which links it to the workflow run that
 built it.
