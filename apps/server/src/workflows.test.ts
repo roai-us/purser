@@ -181,6 +181,15 @@ describe("workflows in the admin API", () => {
       /^baseline, scaleIf locked on 2026-11-07/,
     );
 
+    // The same values sent back, as a form does, are not a change.
+    const unchanged = await h.admin("PATCH", `/workflows/${workflow.id}`, {
+      unit: "support ticket answered",
+      baseline: newWorkflow().baseline,
+      attribution: "before_after",
+      minUnits: 2,
+    });
+    expect(unchanged.status).toBe(200);
+
     // Costs can still be corrected, and the report says so.
     h.clock.now = new Date("2026-11-08T09:00:00Z");
     const costs = await h.admin("PATCH", `/workflows/${workflow.id}`, {

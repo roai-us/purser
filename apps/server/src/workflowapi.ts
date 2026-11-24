@@ -472,7 +472,12 @@ export function workflowRoutes(
     if (!parsed.success) return invalid(c, "change", parsed.error.issues);
     const input = parsed.data;
     if (workflow.lockedAt !== undefined) {
-      const locked = LOCKED_FIELDS.filter((f) => input[f] !== undefined);
+      // Sending a locked field back unchanged is fine; changing it is not.
+      const locked = LOCKED_FIELDS.filter(
+        (f) =>
+          input[f] !== undefined &&
+          JSON.stringify(input[f] ?? undefined) !== JSON.stringify(workflow[f]),
+      );
       if (locked.length > 0) {
         return apiError(
           c,
