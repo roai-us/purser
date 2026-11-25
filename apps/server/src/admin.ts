@@ -43,6 +43,8 @@ import type { Agent } from "./types.js";
 import type { Vault } from "./vault.js";
 import { alertRoutes } from "./alertapi.js";
 import type { Alerts } from "./alerts.js";
+import type { OpenRouterKeys } from "./openrouter-keys.js";
+import { openRouterKeyRoutes } from "./openrouterapi.js";
 import { workflowRoutes } from "./workflowapi.js";
 import type { Workflows } from "./workflows.js";
 
@@ -62,6 +64,8 @@ export interface AdminDeps extends ControlDeps {
   workflows: Workflows;
   /** Alert channels, thresholds and history. */
   alerts: Alerts;
+  /** Per-agent OpenRouter keys. */
+  openRouterKeys: OpenRouterKeys;
 }
 
 type Variables = { actor: string; viewer: Viewer };
@@ -785,6 +789,7 @@ export function adminApp(
   securityRoutes(app, deps);
   workflowRoutes(app, deps);
   alertRoutes(app, deps);
+  openRouterKeyRoutes(app, deps);
 
   app.notFound((c) => apiError(c, 404, "not_found", "Not found."));
 

@@ -278,6 +278,12 @@ Workflows, their results and the ROI report are under `/admin/workflows`. See
 Alert channels, thresholds and history are under `/admin/alerts`. See
 [alerts.md](alerts.md).
 
+## Per-agent OpenRouter keys
+
+The management key, the setting and each agent's OpenRouter key are under
+`/admin/openrouter` and `/admin/agents/:ref/openrouter-key`. See
+[openrouter-keys.md](openrouter-keys.md).
+
 ## Web UI
 
 Any other GET that is not under `/admin`, `/auth`, `/login`, `/health` or a gateway

@@ -18,6 +18,7 @@ import { demoFetch } from "./demo-upstream.js";
 import { runMcpBridge } from "./mcp-stdio.js";
 import { generateSeed, writeSeed } from "./seed.js";
 import { Sessions } from "./sessions.js";
+import { OpenRouterKeys } from "./openrouter-keys.js";
 import { Vault } from "./vault.js";
 import { InFlight } from "./inflight.js";
 import { formatUsd } from "./money.js";
@@ -136,14 +137,21 @@ function runServer(args: string[]): number {
     },
     config.dataDir,
   );
+  const openRouterKeys = new OpenRouterKeys(
+    { store, vault, fetch: globalThis.fetch, now: () => new Date() },
+    config.dataDir,
+  );
   // The demo's pick-a-person sign-in has no password, so it only ever runs
   // on this computer, and only when asked for.
   const demoSignIn =
     process.env.PURSER_DEMO_SIGNIN === "1" && isLoopback(config.host);
   // Look for keys about to expire and workflows past their stop line, now and
   // every hour.
-  const sweep = () =>
+  const sweep = () => {
     sweepAlerts({ store, inflight, now: () => new Date(), workflows, alerts });
+    // Bring agents' OpenRouter keys in step and check them at OpenRouter.
+    void openRouterKeys.sweep();
+  };
   setTimeout(sweep, 5_000).unref();
   setInterval(sweep, 3_600_000).unref();
   // Delete call logs past their retention now and every hour.
@@ -162,6 +170,7 @@ function runServer(args: string[]): number {
     org,
     workflows,
     alerts,
+    openRouterKeys,
     demoSignIn,
     baseUrl: config.baseUrl,
     webDir: config.webDir,

@@ -51,11 +51,10 @@ is.
 - [x] Alerts to Slack, Discord, email and signed webhooks: near and at a cap, spend spikes,
       stopped agents, keys expiring or expired, a workflow past its stop line and
       requests waiting ([alerts.md](alerts.md))
+- [x] Per-agent OpenRouter keys made through OpenRouter's key management API, with each
+      agent's cap and end date, disabled when the agent is stopped: a second layer of
+      stop that needs no change to the agent ([openrouter-keys.md](openrouter-keys.md))
 - [ ] The same proof against the live provider APIs (done for OpenRouter)
-
-**Next:** per-agent OpenRouter keys created through OpenRouter's key management API
-(`POST /api/v1/keys` with `limit`, `limit_reset` and `expires_at`, and disabled on
-kill). That is a second layer of stop that needs no base URL change.
 
 ## Phase 1: the first release (v0.1)
 

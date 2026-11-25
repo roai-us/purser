@@ -182,6 +182,8 @@ export interface AuditEvent {
     | "outcome.voided"
     | "alert.failed"
     | "alerts.changed"
+    | "openrouter.key"
+    | "openrouter.changed"
     | "request.denied";
   agentId?: string | undefined;
   detail?: Record<string, unknown> | undefined;
