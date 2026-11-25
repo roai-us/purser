@@ -27,6 +27,7 @@ import {
   type TokenUsage,
   type UsageRecord,
 } from "./types.js";
+import type { OpenRouterKeys } from "./openrouter-keys.js";
 import type { OpenRouterPrices } from "./live-prices.js";
 import {
   clip,
@@ -55,6 +56,8 @@ export interface GatewayDeps {
   openRouterPrices?: OpenRouterPrices | undefined;
   /** Every connector, with the real provider keys and upstreams. Agents never see the keys. */
   registry: Registry;
+  /** Agents' own OpenRouter keys, used instead of the shared one when they have one. */
+  openRouterKeys?: OpenRouterKeys | undefined;
   fetch: typeof fetch;
   now: () => Date;
 }
@@ -137,15 +140,23 @@ export async function proxy(
     checkService(agent, provider, deps.store, started);
   if (refused) return refuse(deps, provider, agent, refused);
 
-  const providerKey = deps.registry.keyFor(provider.id);
+  const sharedKey = deps.registry.keyFor(provider.id);
   const upstreamBase = deps.registry.upstreamFor(provider.id);
-  if (providerKey === undefined || upstreamBase === undefined) {
+  if (sharedKey === undefined || upstreamBase === undefined) {
     return deny(
       provider,
       503,
       "provider_not_configured",
       `Purser has no ${provider.name} key configured.`,
     );
+  }
+  let providerKey = sharedKey;
+  if (provider.id === "openrouter" && deps.openRouterKeys) {
+    const own = deps.openRouterKeys.gatewayKey(agent.id);
+    if (own && "refuse" in own) {
+      return deny(provider, 503, "agent_key_unavailable", own.refuse);
+    }
+    if (own) providerKey = own.key;
   }
 
   let body: string | undefined;
@@ -181,7 +192,7 @@ export async function proxy(
   }
 
   if (route.metered && provider.id === "openrouter") {
-    deps.openRouterPrices?.refresh(upstreamBase, providerKey);
+    deps.openRouterPrices?.refresh(upstreamBase, sharedKey);
   }
 
   const controller = new AbortController();

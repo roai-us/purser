@@ -3,6 +3,20 @@ import { Hono } from "hono";
 export const REAL_OPENAI_KEY = "sk-real-openai";
 export const REAL_ANTHROPIC_KEY = "sk-ant-real";
 export const REAL_OPENROUTER_KEY = "sk-or-real";
+/** A key that may manage OpenRouter keys and make no calls. */
+export const OPENROUTER_MANAGEMENT_KEY = "sk-or-mgmt-real";
+
+/** A key the mock OpenRouter made through its key API. */
+export interface MockOpenRouterKey {
+  hash: string;
+  key: string;
+  name: string;
+  limit: number | null;
+  limit_reset: string | null;
+  expires_at?: string | undefined;
+  disabled: boolean;
+  usage: number;
+}
 /** The charge the mock OpenRouter reports for every metered call. */
 export const OPENROUTER_COST = 0.00042;
 
@@ -26,6 +40,10 @@ export function mockUpstream() {
   const seen: SeenRequest[] = [];
   const aborted: string[] = [];
   const app = new Hono();
+  /** OpenRouter's keys, by hash, and statuses to answer the next key API calls with. */
+  const orKeys = new Map<string, MockOpenRouterKey>();
+  const orKeyReplies: number[] = [];
+  let orKeySeq = 0;
 
   app.use("*", async (c, next) => {
     const headers: Record<string, string> = {};
@@ -59,10 +77,134 @@ export function mockUpstream() {
   });
 
   app.use("/openrouter/*", async (c, next) => {
-    if (c.req.header("authorization") !== `Bearer ${REAL_OPENROUTER_KEY}`) {
+    const auth = c.req.header("authorization") ?? "";
+    if (c.req.path.startsWith("/openrouter/api/v1/keys")) {
+      if (auth === `Bearer ${OPENROUTER_MANAGEMENT_KEY}`) {
+        const reply = orKeyReplies.shift();
+        if (reply !== undefined) {
+          return c.json(
+            { error: { message: "mock failure", code: reply } },
+            reply as 400,
+          );
+        }
+        return next();
+      }
+      const known =
+        auth === `Bearer ${REAL_OPENROUTER_KEY}` ||
+        [...orKeys.values()].some((k) => auth === `Bearer ${k.key}`);
+      return known
+        ? c.json(
+            {
+              error: {
+                message: "Only management keys can perform this operation",
+                code: 403,
+              },
+            },
+            403,
+          )
+        : c.json(
+            { error: { message: "Invalid management key", code: 401 } },
+            401,
+          );
+    }
+    if (auth === `Bearer ${OPENROUTER_MANAGEMENT_KEY}`) {
+      return c.json(
+        { error: { message: "Management keys cannot make calls", code: 401 } },
+        401,
+      );
+    }
+    const own = [...orKeys.values()].find((k) => auth === `Bearer ${k.key}`);
+    if (!own && auth !== `Bearer ${REAL_OPENROUTER_KEY}`) {
       return c.json({ error: { message: "bad key", code: 401 } }, 401);
     }
+    if (own?.disabled) {
+      return c.json({ error: { message: "Key disabled", code: 401 } }, 401);
+    }
+    if (own && own.limit !== null && own.usage >= own.limit) {
+      return c.json(
+        {
+          error: {
+            message: "Key limit exceeded",
+            code: 402,
+            metadata: { limit_source: "openrouter_key_limit" },
+          },
+        },
+        402,
+      );
+    }
     await next();
+    if (
+      own &&
+      c.res.ok &&
+      /\/(chat\/completions|responses)$/.test(c.req.path)
+    ) {
+      own.usage += OPENROUTER_COST;
+    }
+  });
+
+  const keyJson = (k: MockOpenRouterKey) => ({
+    hash: k.hash,
+    name: k.name,
+    label: `sk-or-v1-${k.key.slice(-4)}`,
+    disabled: k.disabled,
+    limit: k.limit,
+    limit_reset: k.limit_reset,
+    limit_remaining: k.limit === null ? null : k.limit - k.usage,
+    usage: k.usage,
+    usage_daily: k.usage,
+    usage_weekly: k.usage,
+    usage_monthly: k.usage,
+    expires_at: k.expires_at ?? null,
+  });
+
+  app.get("/openrouter/api/v1/keys", (c) => {
+    const offset = Number(c.req.query("offset") ?? 0);
+    const withDisabled = c.req.query("include_disabled") === "true";
+    const all = [...orKeys.values()].filter((k) => withDisabled || !k.disabled);
+    return c.json({ data: all.slice(offset, offset + 100).map(keyJson) });
+  });
+
+  app.post("/openrouter/api/v1/keys", async (c) => {
+    const body = (await c.req.json()) as Record<string, unknown>;
+    if (
+      typeof body.expires_at === "string" &&
+      !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z$/.test(body.expires_at)
+    ) {
+      return c.json({ error: { message: "bad expires_at", code: 400 } }, 400);
+    }
+    orKeySeq += 1;
+    const k: MockOpenRouterKey = {
+      hash: `hash${orKeySeq}`,
+      key: `sk-or-v1-agent${orKeySeq}xyz${orKeySeq}`,
+      name: String(body.name),
+      limit: typeof body.limit === "number" ? body.limit : null,
+      limit_reset:
+        typeof body.limit_reset === "string" ? body.limit_reset : null,
+      expires_at:
+        typeof body.expires_at === "string" ? body.expires_at : undefined,
+      disabled: false,
+      usage: 0,
+    };
+    orKeys.set(k.hash, k);
+    return c.json({ data: keyJson(k), key: k.key }, 201);
+  });
+
+  app.patch("/openrouter/api/v1/keys/:hash", async (c) => {
+    const k = orKeys.get(c.req.param("hash"));
+    if (!k) return c.json({ error: { message: "Not found", code: 404 } }, 404);
+    const body = (await c.req.json()) as Record<string, unknown>;
+    if ("limit" in body) k.limit = body.limit as number | null;
+    if ("limit_reset" in body)
+      k.limit_reset = body.limit_reset as string | null;
+    if ("disabled" in body) k.disabled = body.disabled === true;
+    return c.json({ data: keyJson(k) });
+  });
+
+  app.delete("/openrouter/api/v1/keys/:hash", (c) => {
+    if (!orKeys.delete(c.req.param("hash"))) {
+      return c.json({ error: { message: "Not found", code: 404 } }, 404);
+    }
+    return c.json({ deleted: true });
   });
 
   const slowMs = (c: { req: { header: (n: string) => string | undefined } }) =>
@@ -404,5 +546,5 @@ export function mockUpstream() {
     }),
   );
 
-  return { app, seen, aborted };
+  return { app, seen, aborted, orKeys, orKeyReplies };
 }

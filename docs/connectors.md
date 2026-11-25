@@ -26,6 +26,10 @@ Only the endpoints Purser can meter are proxied (chat completions, the Responses
 embeddings, Anthropic messages, and the model list). Anything else is refused, so
 there is no unmetered side door around the caps.
 
+**Per-agent keys.** OpenRouter can also give each agent its own key, with its cap and end
+date enforced at OpenRouter and disabled when the agent is stopped. See
+[openrouter-keys.md](openrouter-keys.md).
+
 **Metering.** OpenRouter reports what each call cost, and Purser records that figure.
 The others are priced from the dated price table in `apps/server/src/prices.ts`. A
 model missing from the table is charged at the table's highest rate, so caps trip

@@ -20,6 +20,7 @@ import type { Store } from "./store.js";
 import type { SubscriptionDirs } from "./subscriptions.js";
 import { Vault } from "./vault.js";
 import { Alerts } from "./alerts.js";
+import { OpenRouterKeys } from "./openrouter-keys.js";
 import { outcomesApp } from "./workflowapi.js";
 import { Workflows } from "./workflows.js";
 
@@ -59,6 +60,8 @@ export interface AppDeps {
   workflows?: Workflows | undefined;
   /** Alerts. Without one, its settings live in memory only. */
   alerts?: Alerts | undefined;
+  /** Per-agent OpenRouter keys. Without one, its records live in memory only. */
+  openRouterKeys?: OpenRouterKeys | undefined;
   /**
    * Lets anyone pick a demo person on the sign-in page, with no password.
    * Only for the demo on this computer: never turn it on for real data.
@@ -115,10 +118,23 @@ export function createApp(deps: AppDeps): Hono {
       baseUrl: registry.baseUrl,
     });
   alerts.watchRequests((id) => org.getRequest(id)?.status);
+  const openRouterKeys =
+    deps.openRouterKeys ??
+    new OpenRouterKeys({
+      store: deps.store,
+      vault,
+      fetch: deps.fetch,
+      now: deps.now,
+    });
+  openRouterKeys.useOpenRouter({
+    upstream: () => registry.upstreamFor("openrouter"),
+    connected: () => registry.isConfigured("openrouter"),
+  });
   const gateway = {
     ...deps,
     registry,
     logs,
+    openRouterKeys,
     openRouterPrices: new OpenRouterPrices(deps.fetch, deps.now),
   };
 
@@ -361,7 +377,17 @@ export function createApp(deps: AppDeps): Hono {
   app.route(
     "/admin",
     adminApp(
-      { ...deps, registry, vault, sessions, logs, org, workflows, alerts },
+      {
+        ...deps,
+        registry,
+        vault,
+        sessions,
+        logs,
+        org,
+        workflows,
+        alerts,
+        openRouterKeys,
+      },
       deps.adminToken,
     ),
   );

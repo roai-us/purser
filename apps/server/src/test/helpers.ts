@@ -11,6 +11,7 @@ import type { AgentLimits } from "../types.js";
 import { Vault } from "../vault.js";
 import { Workflows } from "../workflows.js";
 import { Alerts } from "../alerts.js";
+import { OpenRouterKeys } from "../openrouter-keys.js";
 import type {
   MailError,
   MailMessage,
@@ -39,6 +40,7 @@ export interface Harness {
   hooks: HookRecorder;
   /** What email alerts were sent, through which server, and how to answer. */
   mail: MailRecorder;
+  openRouterKeys: OpenRouterKeys;
   upstream: ReturnType<typeof mockUpstream>;
   clock: { now: Date };
   addAgent(
@@ -148,6 +150,14 @@ export function harness(
     retryDelaysMs: [0, 0, 0],
     batchMs: 60_000,
   });
+  const openRouterKeys = new OpenRouterKeys({
+    store,
+    vault,
+    fetch: upstreamFetch,
+    now: () => clock.now,
+    retryDelaysMs: [0, 0],
+    retryLaterMs: 3_600_000,
+  });
   const app = createApp({
     store,
     inflight,
@@ -168,6 +178,7 @@ export function harness(
     org,
     workflows,
     alerts,
+    openRouterKeys,
     demoSignIn: options.demoSignIn,
     baseUrl: options.baseUrl,
     customConnectors: options.customConnectors,
@@ -190,6 +201,7 @@ export function harness(
     alerts,
     hooks,
     mail,
+    openRouterKeys,
     upstream,
     clock,
     addAgent(name = "support-bot", limits = {}, extra = {}) {
