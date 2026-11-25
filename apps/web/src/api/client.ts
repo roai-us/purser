@@ -50,6 +50,8 @@ import type {
   AlertSettings,
   AlertsView,
   NewChannel,
+  AgentOpenRouterKeyView,
+  OpenRouterKeysView,
   SmtpInput,
   SmtpSettings,
 } from "./types";
@@ -285,6 +287,28 @@ export const api = {
   saveSmtp: (input: SmtpInput) =>
     request<{ smtp: SmtpSettings }>("PUT", "/admin/alerts/smtp", input),
   removeSmtp: () => request<{ smtp: null }>("DELETE", "/admin/alerts/smtp"),
+  openRouterKeys: () =>
+    request<OpenRouterKeysView>("GET", "/admin/openrouter/agent-keys"),
+  saveOpenRouterManagementKey: (key: string) =>
+    request<OpenRouterKeysView>("PUT", "/admin/openrouter/management-key", {
+      key,
+    }),
+  removeOpenRouterManagementKey: () =>
+    request<OpenRouterKeysView>("DELETE", "/admin/openrouter/management-key"),
+  setOpenRouterAgentKeys: (enabled: boolean) =>
+    request<OpenRouterKeysView>("PUT", "/admin/openrouter/agent-keys", {
+      enabled,
+    }),
+  agentOpenRouterKey: (ref: string) =>
+    request<AgentOpenRouterKeyView>(
+      "GET",
+      `/admin/agents/${enc(ref)}/openrouter-key`,
+    ),
+  replaceAgentOpenRouterKey: (ref: string) =>
+    request<AgentOpenRouterKeyView>(
+      "POST",
+      `/admin/agents/${enc(ref)}/openrouter-key`,
+    ),
   addChannel: (input: NewChannel) =>
     request<{ channel: AlertChannel; signingSecret?: string }>(
       "POST",

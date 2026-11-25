@@ -827,3 +827,35 @@ export interface NewChannel {
   to?: string[] | undefined;
   events: AlertType[];
 }
+
+// Per-agent OpenRouter keys
+
+export interface OpenRouterKeysView {
+  managementKey: { set: boolean; hint?: string | undefined };
+  enabled: boolean;
+  /** OpenRouter itself is connected. */
+  connected: boolean;
+  keys: number;
+  problems: { agentId: string; agentName: string; problem: string }[];
+}
+
+export interface AgentOpenRouterKey {
+  agentId: string;
+  hash: string;
+  label: string;
+  limit: number | null;
+  limitReset: "daily" | "monthly" | null;
+  disabled: boolean;
+  expiresAt: string | null;
+  createdAt: string;
+  syncedAt: string;
+  usage?: { today: number; month: number; at: string } | undefined;
+  problem?: string | undefined;
+  broken?: boolean | undefined;
+}
+
+export interface AgentOpenRouterKeyView {
+  enabled: boolean;
+  key: AgentOpenRouterKey | null;
+  failure: string | null;
+}

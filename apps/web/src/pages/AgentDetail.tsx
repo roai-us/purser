@@ -15,6 +15,7 @@ import {
 import { KeyReveal } from "../components/KeyReveal";
 import { capNow, RaiseLimitDialog } from "../components/RaiseLimit";
 import { AgentServices } from "../components/AgentServices";
+import { AgentOpenRouterKeySection } from "../components/AgentOpenRouterKey";
 import { ConnectAgent } from "../components/ConnectAgent";
 import { ConnectionValues } from "../components/ConnectionValues";
 import { useAgentApi } from "../lib/agentApi";
@@ -88,6 +89,7 @@ export function AgentDetail({
           <AgentServices agent={agent.data} connectors={connectors} />
           <RotateKey agent={agent.data} connectors={connectors} />
           {admin && <CallLogging agent={agent.data} />}
+          {admin && <AgentOpenRouterKeySection agent={agent.data} />}
           <section className="stack" aria-labelledby="spend-h">
             <h3 id="spend-h">Last 30 days</h3>
             {usage.isPending ? (

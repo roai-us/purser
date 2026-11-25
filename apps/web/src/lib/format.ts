@@ -115,6 +115,10 @@ const EVENT_LABELS: Record<string, string> = {
   "keys.rotated_all": "All keys rotated",
   "log.viewed": "Call log read",
   "settings.changed": "Settings changed",
+  "alerts.changed": "Alerts changed",
+  "alert.failed": "Alert not delivered",
+  "openrouter.key": "OpenRouter key changed",
+  "openrouter.changed": "OpenRouter keys setting changed",
 };
 
 export function eventLabel(type: string): string {
