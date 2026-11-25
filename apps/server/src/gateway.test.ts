@@ -594,6 +594,39 @@ describe("kill switch", () => {
     expect(h.store.listUsage(id)[0]?.outputTokens).toBeGreaterThan(0);
   });
 
+  it("counts a stream as complete when the agent hangs up right after its end", async () => {
+    // The OpenAI SDK stops reading at [DONE], sometimes before the provider
+    // closes its side; Anthropic's ends at message_stop.
+    for (const [path, body, end] of [
+      ["/openai/v1/chat/completions", chatBody({ stream: true }), "[DONE]"],
+      [
+        "/anthropic/v1/messages",
+        messagesBody({ stream: true }),
+        "message_stop",
+      ],
+    ] as const) {
+      const h = harness();
+      const { id, key } = h.addAgent();
+      const res = await h.call(path, {
+        ...post(body, { "x-mock-slow": "5" }),
+        key,
+      });
+      const reader = (res.body as ReadableStream<Uint8Array>).getReader();
+      const decoder = new TextDecoder();
+      let text = "";
+      while (!text.includes(end)) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        text += decoder.decode(value, { stream: true });
+      }
+      await reader.cancel();
+      expect(h.store.listUsage(id)[0], path).toMatchObject({
+        outcome: "complete",
+      });
+      expect(h.store.listUsage(id)[0]?.priced, path).not.toBe("estimate");
+    }
+  });
+
   /** Starts a slow stream, reads its first chunk and hangs up. */
   async function hangUp(
     h: ReturnType<typeof harness>,

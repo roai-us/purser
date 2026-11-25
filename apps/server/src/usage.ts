@@ -266,7 +266,11 @@ export class SseParser {
   private buffer = "";
   private readonly decoder = new TextDecoder();
 
-  constructor(private readonly onData: (data: unknown) => void) {}
+  constructor(
+    private readonly onData: (data: unknown) => void,
+    /** Called for the OpenAI-style `data: [DONE]` that ends a stream. */
+    private readonly onDone?: () => void,
+  ) {}
 
   push(chunk: Uint8Array): void {
     this.buffer += this.decoder.decode(chunk, { stream: true });
@@ -288,7 +292,11 @@ export class SseParser {
   private line(line: string): void {
     if (!line.startsWith("data:")) return;
     const payload = line.slice(5).trim();
-    if (payload === "" || payload === "[DONE]") return;
+    if (payload === "[DONE]") {
+      this.onDone?.();
+      return;
+    }
+    if (payload === "") return;
     try {
       this.onData(JSON.parse(payload));
     } catch {

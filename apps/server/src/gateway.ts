@@ -391,10 +391,22 @@ function meteredStream(
           raw: "",
           text: new StreamText(captureChars),
         };
-  const parser = new SseParser((event) => {
-    collector.add(event);
-    capture?.text.add(event);
-  });
+  // The provider has sent the event that ends its answer. An agent that hangs
+  // up after this got the whole answer, so the call is complete, not cut off.
+  let ended = false;
+  const parser = new SseParser(
+    (event) => {
+      collector.add(event);
+      capture?.text.add(event);
+      if (
+        isObject(event) &&
+        (event.type === "message_stop" || event.type === "response.completed")
+      ) {
+        ended = true;
+      }
+    },
+    () => (ended = true),
+  );
   const reader = source.getReader();
   let finished = false;
   const finish = (outcome: UsageRecord["outcome"]) => {
@@ -453,7 +465,9 @@ function meteredStream(
     },
     cancel() {
       // The agent disconnected: stop paying for tokens nobody will read.
-      finish("aborted");
+      // SDKs hang up as soon as they read the end of the answer, sometimes
+      // before the provider closes its side; that call still completed.
+      finish(ended ? "complete" : "aborted");
       controller.abort();
     },
   });
