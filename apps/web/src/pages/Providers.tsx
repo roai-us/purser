@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { Connector } from "../api/types";
 import { CopyButton } from "../components/CopyButton";
+import { OpenRouterAgentKeys } from "../components/OpenRouterAgentKeys";
 import { ErrorNote, Loading } from "../components/Notice";
 import { ProviderKeyForm } from "../components/ProviderKeyForm";
 import { formatDateTime } from "../lib/format";
@@ -164,6 +165,10 @@ function ProviderCard({ connector: c }: { connector: Connector }) {
         </p>
       )}
       <ErrorNote error={test.error ?? remove.error} />
+
+      {c.id === "openrouter" && (
+        <OpenRouterAgentKeys connected={c.configured} />
+      )}
 
       <details className="connect-info">
         <summary>How tools connect</summary>
