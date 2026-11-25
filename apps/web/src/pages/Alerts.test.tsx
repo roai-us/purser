@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { AlertChannel, AlertsView } from "../api/types";
+import type { AlertChannel, AlertsView, SmtpSettings } from "../api/types";
 import { mockFetch, renderWithProviders } from "../test/helpers";
-import { AlertsPage, pathOf } from "./Alerts";
+import { AlertsPage, pathOf, splitAddresses } from "./Alerts";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -36,6 +36,7 @@ function view(over: Partial<AlertsView> = {}): AlertsView {
       spikeMinUsd: 5,
       keyExpiringDays: 7,
     },
+    smtp: null,
     channels: [
       channel(),
       channel({
@@ -453,5 +454,296 @@ describe("pathOf", () => {
       "/workflows/A%20B/report?from=1",
     );
     expect(pathOf("nope")).toBe("/");
+  });
+});
+
+const SMTP: SmtpSettings = {
+  host: "smtp.example.com",
+  port: 587,
+  security: "starttls",
+  username: "alerts@example.com",
+  from: "purser@example.com",
+  passwordSet: true,
+};
+
+describe("the mail server", () => {
+  it("is set up from the page, following the usual port", async () => {
+    let smtp: SmtpSettings | null = null;
+    const { calls } = mockFetch({
+      "GET /admin/alerts": () => view({ smtp }),
+      "PUT /admin/alerts/smtp": (call) => {
+        const { password, ...rest } = call.body as SmtpSettings & {
+          password?: string;
+        };
+        smtp = { ...rest, passwordSet: Boolean(password) };
+        return { smtp };
+      },
+    });
+    renderWithProviders(<AlertsPage />);
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Set up email" }),
+    );
+    const save = () =>
+      userEvent.click(screen.getByRole("button", { name: "Save mail server" }));
+    await save();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Enter the mail server's address.",
+    );
+    await userEvent.type(
+      screen.getByLabelText("Server address"),
+      "smtp.example.com",
+    );
+    await save();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Enter the address alerts come from.",
+    );
+    await userEvent.type(
+      screen.getByLabelText("Send from"),
+      "purser@example.com",
+    );
+
+    // The port follows the encryption until someone types their own.
+    expect(screen.getByLabelText("Port")).toHaveValue("587");
+    await userEvent.click(screen.getByLabelText(/^TLS/));
+    expect(screen.getByLabelText("Port")).toHaveValue("465");
+    await userEvent.click(screen.getByLabelText(/^None/));
+    expect(screen.getByLabelText("Port")).toHaveValue("25");
+    await userEvent.type(screen.getByLabelText("Username"), "alerts");
+    await userEvent.type(screen.getByLabelText("Password"), "pw");
+    await save();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Choose TLS or STARTTLS",
+    );
+    await userEvent.click(screen.getByLabelText(/^STARTTLS/));
+    expect(screen.getByLabelText("Port")).toHaveValue("587");
+    await userEvent.clear(screen.getByLabelText("Port"));
+    await userEvent.type(screen.getByLabelText("Port"), "70000");
+    await save();
+    expect(screen.getByRole("alert")).toHaveTextContent("1 to 65535");
+    await userEvent.clear(screen.getByLabelText("Port"));
+    await userEvent.type(screen.getByLabelText("Port"), "2525");
+    await userEvent.click(screen.getByLabelText(/^TLS/));
+    expect(screen.getByLabelText("Port")).toHaveValue("2525");
+    await save();
+
+    expect(
+      await screen.findByText(/Saved the mail server/),
+    ).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "PUT")?.body).toEqual({
+      host: "smtp.example.com",
+      port: 2525,
+      security: "tls",
+      username: "alerts",
+      password: "pw",
+      from: "purser@example.com",
+    });
+    expect(
+      await screen.findByText(/Email alerts go out through/),
+    ).toHaveTextContent(
+      "smtp.example.com:2525 with TLS, from purser@example.com, signing in as alerts.",
+    );
+  });
+
+  it("keeps the saved password unless a new one is typed, and can be removed", async () => {
+    let smtp: SmtpSettings | null = SMTP;
+    const { calls } = mockFetch({
+      "GET /admin/alerts": () => view({ smtp }),
+      "PUT /admin/alerts/smtp": () => ({ smtp }),
+      "DELETE /admin/alerts/smtp": () => {
+        smtp = null;
+        return { smtp: null };
+      },
+    });
+    renderWithProviders(<AlertsPage />);
+    expect(
+      await screen.findByText(/Email alerts go out through/),
+    ).toHaveTextContent("with STARTTLS");
+    await userEvent.click(screen.getByRole("button", { name: "Change" }));
+    expect(screen.getByLabelText("Server address")).toHaveValue(
+      "smtp.example.com",
+    );
+    expect(screen.getByText(/A password is saved/)).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Save mail server" }),
+    );
+    await waitFor(() =>
+      expect(calls.find((c) => c.method === "PUT")?.body).toEqual({
+        host: "smtp.example.com",
+        port: 587,
+        security: "starttls",
+        username: "alerts@example.com",
+        from: "purser@example.com",
+      }),
+    );
+
+    // No username means nothing to sign in with, so the password goes.
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Change" }),
+    );
+    await userEvent.clear(screen.getByLabelText("Username"));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Save mail server" }),
+    );
+    await waitFor(() =>
+      expect(
+        calls.filter((c) => c.method === "PUT").at(-1)?.body,
+      ).toMatchObject({ username: "", password: "" }),
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Remove" }),
+    );
+    const confirm = screen.getByRole("dialog", {
+      name: "Remove the mail server?",
+    });
+    await userEvent.click(
+      within(confirm).getByRole("button", { name: "Remove" }),
+    );
+    expect(
+      await screen.findByText(/Removed the mail server/),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Set up email" }),
+    ).toBeInTheDocument();
+  });
+
+  it("can be cancelled", async () => {
+    mockFetch({ "GET /admin/alerts": () => view() });
+    renderWithProviders(<AlertsPage />);
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Set up email" }),
+    );
+    await userEvent.click(
+      screen.getAllByRole("button", { name: "Cancel" })[0] as HTMLElement,
+    );
+    expect(screen.queryByLabelText("Server address")).toBeNull();
+  });
+});
+
+describe("email channels", () => {
+  it("need the mail server first", async () => {
+    mockFetch({ "GET /admin/alerts": () => view() });
+    renderWithProviders(<AlertsPage />);
+    await userEvent.click(
+      (
+        await screen.findAllByRole("button", { name: "Add a channel" })
+      )[0] as HTMLElement,
+    );
+    const dialog = screen.getByRole("dialog", { name: "Add a channel" });
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Email" }),
+    );
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
+      "Set up the mail server on this page first",
+    );
+    expect(
+      within(dialog).getByRole("button", { name: "Add channel" }),
+    ).toBeDisabled();
+  });
+
+  it("are added with their addresses, shown, and edited", async () => {
+    const email = channel({
+      id: "ch_9",
+      name: "Finance email",
+      kind: "email",
+      to: ["cfo@example.com", "ops@example.com"],
+      urlHint: "",
+    });
+    const { calls } = mockFetch({
+      "GET /admin/alerts": () =>
+        view({ smtp: SMTP, channels: [email], recent: [] }),
+      "POST /admin/alerts/channels": () => ({
+        status: 201,
+        body: { channel: email },
+      }),
+      "PATCH /admin/alerts/channels/ch_9": () => ({ channel: email }),
+    });
+    renderWithProviders(<AlertsPage />);
+    const table = await screen.findByRole("table");
+    expect(within(table).getAllByRole("row")[1]).toHaveTextContent(
+      "Email · cfo@example.com, ops@example.com",
+    );
+
+    await userEvent.click(
+      screen.getAllByRole("button", {
+        name: "Add a channel",
+      })[0] as HTMLElement,
+    );
+    const dialog = screen.getByRole("dialog", { name: "Add a channel" });
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Email" }),
+    );
+    expect(within(dialog).queryByRole("alert")).toBeNull();
+    await userEvent.type(
+      within(dialog).getByLabelText("Name"),
+      "Finance email",
+    );
+    const submit = () =>
+      userEvent.click(
+        within(dialog).getByRole("button", { name: "Add channel" }),
+      );
+    await submit();
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
+      "Add at least one email address.",
+    );
+    await userEvent.type(
+      within(dialog).getByLabelText("Send to"),
+      "cfo@example.com, nope",
+    );
+    await submit();
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
+      "nope is not an email address.",
+    );
+    await userEvent.clear(within(dialog).getByLabelText("Send to"));
+    await userEvent.type(
+      within(dialog).getByLabelText("Send to"),
+      Array.from({ length: 21 }, (_, i) => `p${i}@example.com`).join(","),
+    );
+    await submit();
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
+      "Up to 20 addresses.",
+    );
+    await userEvent.clear(within(dialog).getByLabelText("Send to"));
+    await userEvent.type(
+      within(dialog).getByLabelText("Send to"),
+      "cfo@example.com; ops@example.com",
+    );
+    await submit();
+    expect(await screen.findByText(/Added Finance email/)).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "POST")?.body).toEqual({
+      name: "Finance email",
+      kind: "email",
+      to: ["cfo@example.com", "ops@example.com"],
+      events: [],
+    });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Edit Finance email" }),
+    );
+    const edit = screen.getByRole("dialog", { name: "Edit Finance email" });
+    expect(within(edit).getByLabelText("Send to")).toHaveValue(
+      "cfo@example.com, ops@example.com",
+    );
+    await userEvent.type(
+      within(edit).getByLabelText("Send to"),
+      ", new@example.com",
+    );
+    await userEvent.click(within(edit).getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(calls.find((c) => c.method === "PATCH")?.body).toEqual({
+        name: "Finance email",
+        events: [],
+        to: ["cfo@example.com", "ops@example.com", "new@example.com"],
+      }),
+    );
+  });
+
+  it("splits addresses on commas, semicolons and spaces", () => {
+    expect(splitAddresses(" a@x.com,b@y.com ;  c@z.com\nd@w.com,, ")).toEqual([
+      "a@x.com",
+      "b@y.com",
+      "c@z.com",
+      "d@w.com",
+    ]);
   });
 });

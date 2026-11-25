@@ -48,7 +48,7 @@ is.
       ([docker.md](docker.md))
 - [x] `npx @roai-us/purser`: the server package on npm with the web UI inside it,
       packed and run from a clean folder on every pull request ([releasing.md](releasing.md))
-- [x] Alerts to Slack, Discord and signed webhooks: near and at a cap, spend spikes,
+- [x] Alerts to Slack, Discord, email and signed webhooks: near and at a cap, spend spikes,
       stopped agents, keys expiring or expired, a workflow past its stop line and
       requests waiting ([alerts.md](alerts.md))
 - [ ] The same proof against the live provider APIs (done for OpenRouter)

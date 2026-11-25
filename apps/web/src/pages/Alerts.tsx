@@ -10,6 +10,8 @@ import type {
   AlertType,
   AlertsView,
   ChannelKind,
+  SmtpSecurity,
+  SmtpSettings,
 } from "../api/types";
 import { CopyButton } from "../components/CopyButton";
 import { Dialog } from "../components/Dialog";
@@ -23,6 +25,7 @@ const KIND_WORDS: Record<ChannelKind, string> = {
   slack: "Slack",
   discord: "Discord",
   webhook: "Webhook",
+  email: "Email",
 };
 
 const KIND_HINTS: Record<ChannelKind, string> = {
@@ -32,7 +35,16 @@ const KIND_HINTS: Record<ChannelKind, string> = {
     "A Discord webhook URL, from the channel's Integrations settings. It starts https://discord.com/api/webhooks/.",
   webhook:
     "Any https address. Purser sends JSON and signs it, so your receiver can check it came from here.",
+  email: "Up to 20 addresses, separated by commas.",
 };
+
+/** Splits "a@x.com, b@y.com" into addresses. */
+export function splitAddresses(text: string): string[] {
+  return text
+    .split(/[\s,;]+/)
+    .map((a) => a.trim())
+    .filter(Boolean);
+}
 
 export function AlertsPage() {
   const view = useQuery({ queryKey: ["alerts"], queryFn: api.alerts });
@@ -104,12 +116,14 @@ export function AlertsPage() {
         }}
         onNotice={setNotice}
       />
+      <MailServer smtp={data.smtp} onSaved={setNotice} />
       <Thresholds settings={data.settings} onSaved={setNotice} />
       <Recent records={data.recent} />
 
       {adding && (
         <ChannelDialog
           types={data.types}
+          hasMailServer={data.smtp !== null}
           onClose={() => setAdding(false)}
           onSaved={(text, signing) => {
             setAdding(false);
@@ -121,6 +135,7 @@ export function AlertsPage() {
       {editing && (
         <ChannelDialog
           types={data.types}
+          hasMailServer={data.smtp !== null}
           channel={editing}
           onClose={() => setEditing(null)}
           onSaved={(text) => {
@@ -193,7 +208,7 @@ function Channels({
         <div className="empty stack">
           <p>
             No channels yet, so alerts are only listed below. Add a Slack or
-            Discord channel, or a webhook, to have them sent.
+            Discord channel, email addresses, or a webhook to have them sent.
           </p>
           <p>
             <button type="button" className="button" onClick={onAdd}>
@@ -221,7 +236,11 @@ function Channels({
                     {c.name}
                     <span className="cell-sub">
                       {KIND_WORDS[c.kind]} ·{" "}
-                      <span className="mono">{c.urlHint}</span>
+                      {c.kind === "email" ? (
+                        (c.to ?? []).join(", ")
+                      ) : (
+                        <span className="mono">{c.urlHint}</span>
+                      )}
                       {c.enabled ? "" : " · paused"}
                     </span>
                   </th>
@@ -337,11 +356,13 @@ function Channels({
 
 function ChannelDialog({
   types,
+  hasMailServer,
   channel,
   onClose,
   onSaved,
 }: {
   types: AlertsView["types"];
+  hasMailServer: boolean;
   channel?: AlertChannel;
   onClose: () => void;
   onSaved: (text: string, secret?: { name: string; value: string }) => void;
@@ -350,6 +371,7 @@ function ChannelDialog({
   const [kind, setKind] = useState<ChannelKind>(channel?.kind ?? "slack");
   const [name, setName] = useState(channel?.name ?? "");
   const [url, setUrl] = useState("");
+  const [to, setTo] = useState((channel?.to ?? []).join(", "));
   const [every, setEvery] = useState((channel?.events.length ?? 0) === 0);
   const [events, setEvents] = useState<AlertType[]>(channel?.events ?? []);
   const [problem, setProblem] = useState<string | null>(null);
@@ -358,17 +380,23 @@ function ChannelDialog({
   const save = useMutation({
     mutationFn: async () => {
       const chosen = every ? [] : events;
+      const target =
+        kind === "email"
+          ? { to: splitAddresses(to) }
+          : url.trim()
+            ? { url: url.trim() }
+            : {};
       if (channel) {
         return api.updateChannel(channel.id, {
           name: name.trim(),
           events: chosen,
-          ...(url.trim() ? { url: url.trim() } : {}),
+          ...target,
         });
       }
       return api.addChannel({
         name: name.trim(),
         kind,
-        url: url.trim(),
+        ...target,
         events: chosen,
       });
     },
@@ -392,9 +420,21 @@ function ChannelDialog({
   function submit(event: FormEvent) {
     event.preventDefault();
     if (!name.trim()) return setProblem("Give the channel a name.");
-    if (!channel && !url.trim()) return setProblem("Paste the channel's URL.");
-    if (url.trim() && !/^https?:\/\//i.test(url.trim())) {
-      return setProblem("The URL starts with https://.");
+    if (kind === "email") {
+      const addresses = splitAddresses(to);
+      if (addresses.length === 0) {
+        return setProblem("Add at least one email address.");
+      }
+      if (addresses.length > 20) return setProblem("Up to 20 addresses.");
+      const bad = addresses.find((a) => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a));
+      if (bad) return setProblem(`${bad} is not an email address.`);
+    } else {
+      if (!channel && !url.trim()) {
+        return setProblem("Paste the channel's URL.");
+      }
+      if (url.trim() && !/^https?:\/\//i.test(url.trim())) {
+        return setProblem("The URL starts with https://.");
+      }
     }
     if (!every && events.length === 0) {
       return setProblem(
@@ -420,7 +460,7 @@ function ChannelDialog({
               role="group"
               aria-label="Kind of channel"
             >
-              {(["slack", "discord", "webhook"] as const).map((k) => (
+              {(["slack", "discord", "email", "webhook"] as const).map((k) => (
                 <button
                   key={k}
                   type="button"
@@ -436,22 +476,44 @@ function ChannelDialog({
         <Field label="Name" hint='For you: "Ops in Slack", "Finance on-call".'>
           <input value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
-        <Field
-          label={channel ? "New URL (optional)" : "URL"}
-          hint={
-            channel
-              ? `Purser keeps the saved URL secret (${channel.urlHint}). Paste a new one only to replace it.`
-              : KIND_HINTS[kind]
-          }
-        >
-          <input
-            type="password"
-            autoComplete="off"
-            spellCheck={false}
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-          />
-        </Field>
+        {kind === "email" ? (
+          <>
+            {!hasMailServer && (
+              <p className="note note-error" role="alert">
+                Set up the mail server on this page first, so Purser can send
+                email.
+              </p>
+            )}
+            <Field label="Send to" hint={KIND_HINTS.email}>
+              <input
+                type="text"
+                inputMode="email"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="ops@example.com, finance@example.com"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+              />
+            </Field>
+          </>
+        ) : (
+          <Field
+            label={channel ? "New URL (optional)" : "URL"}
+            hint={
+              channel
+                ? `Purser keeps the saved URL secret (${channel.urlHint}). Paste a new one only to replace it.`
+                : KIND_HINTS[kind]
+            }
+          >
+            <input
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+          </Field>
+        )}
         <fieldset className="radio-list">
           <legend>What to send</legend>
           <label className="radio radio-block">
@@ -507,12 +569,325 @@ function ChannelDialog({
           >
             Cancel
           </button>
-          <button type="submit" className="button" disabled={save.isPending}>
+          <button
+            type="submit"
+            className="button"
+            disabled={
+              save.isPending || (kind === "email" && !channel && !hasMailServer)
+            }
+          >
             {save.isPending ? "Saving…" : channel ? "Save" : "Add channel"}
           </button>
         </div>
       </form>
     </Dialog>
+  );
+}
+
+const SECURITY_WORDS: Record<SmtpSecurity, string> = {
+  starttls: "STARTTLS (usually port 587)",
+  tls: "TLS (usually port 465)",
+  none: "None: only for a relay on this computer or private network",
+};
+const SECURITY_PORT: Record<SmtpSecurity, number> = {
+  starttls: 587,
+  tls: 465,
+  none: 25,
+};
+
+const isLocalHost = (host: string) =>
+  ["localhost", "127.0.0.1", "::1", "[::1]"].includes(host.toLowerCase());
+
+function MailServer({
+  smtp,
+  onSaved,
+}: {
+  smtp: SmtpSettings | null;
+  onSaved: (text: string) => void;
+}) {
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState({
+    host: smtp?.host ?? "",
+    port: String(smtp?.port ?? 587),
+    security: smtp?.security ?? ("starttls" as SmtpSecurity),
+    username: smtp?.username ?? "",
+    password: "",
+    from: smtp?.from ?? "",
+  });
+  const [problem, setProblem] = useState<string | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["alerts"] });
+  const save = useMutation({
+    mutationFn: api.saveSmtp,
+    onSuccess: () => {
+      void refresh();
+      setOpen(false);
+      setDraft((d) => ({ ...d, password: "" }));
+      onSaved(
+        "Saved the mail server. Send a test to an email channel to check it.",
+      );
+    },
+  });
+  const remove = useMutation({
+    mutationFn: api.removeSmtp,
+    onSuccess: () => {
+      void refresh();
+      setRemoving(false);
+      setDraft({
+        host: "",
+        port: "587",
+        security: "starttls",
+        username: "",
+        password: "",
+        from: "",
+      });
+      onSaved("Removed the mail server. Email channels stop until it is back.");
+    },
+  });
+
+  const set = (key: keyof typeof draft) => (value: string) =>
+    setDraft((d) => ({ ...d, [key]: value }));
+
+  function chooseSecurity(security: SmtpSecurity) {
+    setDraft((d) => ({
+      ...d,
+      security,
+      // Follow the usual port, unless someone typed their own.
+      port:
+        d.port === String(SECURITY_PORT[d.security]) || d.port === ""
+          ? String(SECURITY_PORT[security])
+          : d.port,
+    }));
+  }
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    const host = draft.host.trim();
+    const port = Number(draft.port);
+    const from = draft.from.trim();
+    const username = draft.username.trim();
+    if (!host) return setProblem("Enter the mail server's address.");
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      return setProblem("The port is a whole number from 1 to 65535.");
+    }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(from)) {
+      return setProblem("Enter the address alerts come from.");
+    }
+    const sendsPassword =
+      draft.password !== "" || (draft.password === "" && smtp?.passwordSet);
+    if (
+      draft.security === "none" &&
+      username &&
+      sendsPassword &&
+      !isLocalHost(host)
+    ) {
+      return setProblem(
+        "Choose TLS or STARTTLS to send a password to a mail server on another computer.",
+      );
+    }
+    setProblem(null);
+    save.mutate({
+      host,
+      port,
+      security: draft.security,
+      username,
+      // Without a username there is nothing to sign in with.
+      ...(username
+        ? draft.password
+          ? { password: draft.password }
+          : {}
+        : { password: "" }),
+      from,
+    });
+  }
+
+  const radio = useId();
+
+  return (
+    <section className="card stack">
+      <div className="row between">
+        <h2>Mail server</h2>
+        {smtp && !open && (
+          <div className="row">
+            <button
+              type="button"
+              className="button button-ghost"
+              onClick={() => setOpen(true)}
+            >
+              Change
+            </button>
+            <button
+              type="button"
+              className="button button-ghost"
+              onClick={() => setRemoving(true)}
+            >
+              Remove
+            </button>
+          </div>
+        )}
+      </div>
+      {smtp && !open ? (
+        <p className="mail-summary">
+          Email alerts go out through{" "}
+          <span className="mono">
+            {smtp.host}:{smtp.port}
+          </span>{" "}
+          with{" "}
+          {smtp.security === "none"
+            ? "no encryption"
+            : smtp.security.toUpperCase()}
+          , from <span className="mono">{smtp.from}</span>
+          {smtp.username
+            ? `, signing in as ${smtp.username}${smtp.passwordSet ? "" : " (no password saved)"}`
+            : ", without signing in"}
+          .
+        </p>
+      ) : !smtp && !open ? (
+        <div className="stack">
+          <p className="muted">
+            To send alerts by email, tell Purser which mail server to send
+            through: your company&apos;s, or a sending service such as Amazon
+            SES, Postmark or SendGrid. Their SMTP settings page lists the
+            address, port and sign-in.
+          </p>
+          <p>
+            <button
+              type="button"
+              className="button button-soft"
+              onClick={() => setOpen(true)}
+            >
+              Set up email
+            </button>
+          </p>
+        </div>
+      ) : (
+        <form className="stack" onSubmit={submit}>
+          <div className="grid-2">
+            <Field label="Server address" hint="Such as smtp.example.com.">
+              <input
+                autoComplete="off"
+                spellCheck={false}
+                value={draft.host}
+                onChange={(e) => set("host")(e.target.value)}
+              />
+            </Field>
+            <Field label="Port">
+              <input
+                inputMode="numeric"
+                value={draft.port}
+                onChange={(e) => set("port")(e.target.value)}
+              />
+            </Field>
+          </div>
+          <fieldset className="radio-list">
+            <legend>Encryption</legend>
+            {(["starttls", "tls", "none"] as const).map((s) => (
+              <label key={s} className="radio radio-block">
+                <input
+                  type="radio"
+                  name={radio}
+                  checked={draft.security === s}
+                  onChange={() => chooseSecurity(s)}
+                />
+                <span>{SECURITY_WORDS[s]}</span>
+              </label>
+            ))}
+          </fieldset>
+          <div className="grid-2">
+            <Field
+              label="Username"
+              hint="Leave empty if the server takes mail without signing in."
+            >
+              <input
+                autoComplete="off"
+                spellCheck={false}
+                value={draft.username}
+                onChange={(e) => set("username")(e.target.value)}
+              />
+            </Field>
+            <Field
+              label="Password"
+              hint={
+                smtp?.passwordSet
+                  ? "A password is saved. Type a new one only to replace it."
+                  : "Kept with the provider keys, never shown again."
+              }
+            >
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={draft.password}
+                onChange={(e) => set("password")(e.target.value)}
+              />
+            </Field>
+          </div>
+          <Field
+            label="Send from"
+            hint="An address the mail server lets you send from, such as alerts@example.com."
+          >
+            <input
+              type="email"
+              autoComplete="off"
+              value={draft.from}
+              onChange={(e) => set("from")(e.target.value)}
+            />
+          </Field>
+          {problem && (
+            <p className="note note-error" role="alert">
+              {problem}
+            </p>
+          )}
+          <ErrorNote error={save.error} />
+          <div className="row end">
+            <button
+              type="button"
+              className="button button-ghost"
+              onClick={() => {
+                setOpen(false);
+                setProblem(null);
+              }}
+            >
+              Cancel
+            </button>
+            <button type="submit" className="button" disabled={save.isPending}>
+              {save.isPending ? "Saving…" : "Save mail server"}
+            </button>
+          </div>
+        </form>
+      )}
+      {removing && (
+        <Dialog
+          title="Remove the mail server?"
+          onClose={() => setRemoving(false)}
+        >
+          <div className="stack">
+            <p>
+              Purser forgets the server and its password. Email channels stay,
+              but nothing is sent to them until a mail server is set up again.
+            </p>
+            <ErrorNote error={remove.error} />
+            <div className="row end">
+              <button
+                type="button"
+                className="button button-ghost"
+                onClick={() => setRemoving(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="button button-danger"
+                disabled={remove.isPending}
+                onClick={() => remove.mutate()}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </Dialog>
+      )}
+    </section>
   );
 }
 

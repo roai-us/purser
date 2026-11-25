@@ -50,6 +50,8 @@ import type {
   AlertSettings,
   AlertsView,
   NewChannel,
+  SmtpInput,
+  SmtpSettings,
 } from "./types";
 
 /** Fired on window when the server says the session is gone. */
@@ -280,6 +282,9 @@ export const api = {
       "/admin/alerts/settings",
       patch,
     ),
+  saveSmtp: (input: SmtpInput) =>
+    request<{ smtp: SmtpSettings }>("PUT", "/admin/alerts/smtp", input),
+  removeSmtp: () => request<{ smtp: null }>("DELETE", "/admin/alerts/smtp"),
   addChannel: (input: NewChannel) =>
     request<{ channel: AlertChannel; signingSecret?: string }>(
       "POST",
