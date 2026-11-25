@@ -1,11 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
     "outDir": "dist",
     "resolveJsonModule": true,
     "types": ["node"],
     "customConditions": ["purser-source"]
   },
-  "include": ["src"]
+  "include": ["src", "live"]
 }

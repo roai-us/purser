@@ -21,6 +21,7 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "test:coverage": "pnpm -r test:coverage",
+    "test:live": "pnpm --filter @roai-us/purser test:live",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

@@ -54,7 +54,9 @@ is.
 - [x] Per-agent OpenRouter keys made through OpenRouter's key management API, with each
       agent's cap and end date, disabled when the agent is stopped: a second layer of
       stop that needs no change to the agent ([openrouter-keys.md](openrouter-keys.md))
-- [ ] The same proof against the live provider APIs (done for OpenRouter)
+- [ ] The same proof against the live provider APIs: `pnpm test:live` runs it with your
+      keys ([live-checks.md](live-checks.md)). OpenRouter was checked by hand; the
+      others are waiting on a run with real keys
 
 ## Phase 1: the first release (v0.1)
 
