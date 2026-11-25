@@ -96,15 +96,15 @@ function connectorId(envPart: string): string {
 }
 
 /**
- * The built web UI: inside the npm package it sits beside dist as web/; in
- * the repository it is apps/web/dist.
+ * The built web UI. In a checkout (src/ sits beside dist/) it is the
+ * repository's apps/web/dist, always the freshest build. An installed npm
+ * package has no src/ and carries its own copy beside dist as web/.
  */
 function defaultWebDir(): string {
   const here = dirname(fileURLToPath(import.meta.url));
-  const packaged = resolve(here, "../web");
-  return existsSync(join(packaged, "index.html"))
-    ? packaged
-    : resolve(here, "../../web/dist");
+  return existsSync(resolve(here, "../src"))
+    ? resolve(here, "../../web/dist")
+    : resolve(here, "../web");
 }
 
 /**

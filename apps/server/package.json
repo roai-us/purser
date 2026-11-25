@@ -45,7 +45,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "dev": "node --experimental-strip-types src/cli.ts serve",
-    "prepack": "node scripts/prepack.mjs"
+    "prepack": "node scripts/prepack.mjs",
+    "postpack": "node scripts/postpack.mjs"
   },
   "dependencies": {
     "@roai-us/roi-core": "workspace:*",

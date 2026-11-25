@@ -45,6 +45,11 @@ import type {
   WorkflowDetail,
   WorkflowPatch,
   WorkflowSummary,
+  AlertChannel,
+  AlertDelivery,
+  AlertSettings,
+  AlertsView,
+  NewChannel,
 } from "./types";
 
 /** Fired on window when the server says the session is gone. */
@@ -265,6 +270,37 @@ export const api = {
     request<{ outcome: Outcome }>(
       "POST",
       `/admin/workflows/${enc(ref)}/outcomes/${enc(id)}/void`,
+    ),
+
+  // Alerts (admins)
+  alerts: () => request<AlertsView>("GET", "/admin/alerts"),
+  saveAlertSettings: (patch: Partial<AlertSettings>) =>
+    request<{ settings: AlertSettings }>(
+      "PUT",
+      "/admin/alerts/settings",
+      patch,
+    ),
+  addChannel: (input: NewChannel) =>
+    request<{ channel: AlertChannel; signingSecret?: string }>(
+      "POST",
+      "/admin/alerts/channels",
+      input,
+    ),
+  updateChannel: (
+    id: string,
+    patch: Partial<Omit<NewChannel, "kind">> & { enabled?: boolean },
+  ) =>
+    request<{ channel: AlertChannel }>(
+      "PATCH",
+      `/admin/alerts/channels/${enc(id)}`,
+      patch,
+    ),
+  removeChannel: (id: string) =>
+    request<{ removed: string }>("DELETE", `/admin/alerts/channels/${enc(id)}`),
+  testChannel: (id: string) =>
+    request<{ delivery: AlertDelivery }>(
+      "POST",
+      `/admin/alerts/channels/${enc(id)}/test`,
     ),
 
   // People, departments and organisation settings (admins)
