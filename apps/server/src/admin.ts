@@ -41,6 +41,8 @@ import {
 import { scanSubscriptions, type SubscriptionDirs } from "./subscriptions.js";
 import type { Agent } from "./types.js";
 import type { Vault } from "./vault.js";
+import { alertRoutes } from "./alertapi.js";
+import type { Alerts } from "./alerts.js";
 import { workflowRoutes } from "./workflowapi.js";
 import type { Workflows } from "./workflows.js";
 
@@ -58,6 +60,8 @@ export interface AdminDeps extends ControlDeps {
   demoSignIn?: boolean | undefined;
   /** Workflows, their results and ROI reports. */
   workflows: Workflows;
+  /** Alert channels, thresholds and history. */
+  alerts: Alerts;
 }
 
 type Variables = { actor: string; viewer: Viewer };
@@ -780,6 +784,7 @@ export function adminApp(
   orgAdminRoutes(app, deps);
   securityRoutes(app, deps);
   workflowRoutes(app, deps);
+  alertRoutes(app, deps);
 
   app.notFound((c) => apiError(c, 404, "not_found", "Not found."));
 

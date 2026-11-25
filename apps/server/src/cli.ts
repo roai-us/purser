@@ -26,6 +26,8 @@ import { Store } from "./store.js";
 import type { SubscriptionReport } from "./subscriptions.js";
 import type { PublicAgent } from "./types.js";
 import { Workflows } from "./workflows.js";
+import { Alerts } from "./alerts.js";
+import { sweepAlerts } from "./workflowapi.js";
 
 interface ApiError {
   error?: { code?: string; message?: string } | string;
@@ -122,25 +124,44 @@ function runServer(args: string[]): number {
   const logs = new CallLog(config.dataDir, () => new Date());
   const org = new Org(config.dataDir, () => new Date());
   const workflows = new Workflows(config.dataDir);
+  const vault = new Vault(config.dataDir);
+  const inflight = new InFlight();
+  const alerts = new Alerts(
+    {
+      store,
+      vault,
+      fetch: globalThis.fetch,
+      now: () => new Date(),
+      baseUrl: config.baseUrl,
+    },
+    config.dataDir,
+  );
   // The demo's pick-a-person sign-in has no password, so it only ever runs
   // on this computer, and only when asked for.
   const demoSignIn =
     process.env.PURSER_DEMO_SIGNIN === "1" && isLoopback(config.host);
+  // Look for keys about to expire and workflows past their stop line, now and
+  // every hour.
+  const sweep = () =>
+    sweepAlerts({ store, inflight, now: () => new Date(), workflows, alerts });
+  setTimeout(sweep, 5_000).unref();
+  setInterval(sweep, 3_600_000).unref();
   // Delete call logs past their retention now and every hour.
   logs.purge();
   setInterval(() => logs.purge(), 3_600_000).unref();
   const app = createApp({
     store,
-    inflight: new InFlight(),
+    inflight,
     prices: DEFAULT_PRICES,
     providerKeys: config.providerKeys,
     upstreams: config.upstreams,
-    vault: new Vault(config.dataDir),
+    vault,
     customConnectors: custom.manifests,
     sessions,
     logs,
     org,
     workflows,
+    alerts,
     demoSignIn,
     baseUrl: config.baseUrl,
     webDir: config.webDir,

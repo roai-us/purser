@@ -180,6 +180,8 @@ export interface AuditEvent {
     | "workflow.locked"
     | "outcome.recorded"
     | "outcome.voided"
+    | "alert.failed"
+    | "alerts.changed"
     | "request.denied";
   agentId?: string | undefined;
   detail?: Record<string, unknown> | undefined;

@@ -10,6 +10,7 @@ import type { SubscriptionDirs } from "../subscriptions.js";
 import type { AgentLimits } from "../types.js";
 import { Vault } from "../vault.js";
 import { Workflows } from "../workflows.js";
+import { Alerts } from "../alerts.js";
 import {
   mockUpstream,
   REAL_ANTHROPIC_KEY,
@@ -27,6 +28,9 @@ export interface Harness {
   sessions: Sessions;
   org: Org;
   workflows: Workflows;
+  alerts: Alerts;
+  /** What alert channels received at https://hooks.test/..., and how to answer. */
+  hooks: HookRecorder;
   upstream: ReturnType<typeof mockUpstream>;
   clock: { now: Date };
   addAgent(
@@ -48,6 +52,19 @@ export interface Harness {
   ): Promise<Response>;
   call(path: string, init?: RequestInit & { key?: string }): Promise<Response>;
   admin(method: string, path: string, body?: unknown): Promise<Response>;
+}
+
+export interface HookCall {
+  url: string;
+  headers: Record<string, string>;
+  body: string;
+  json: Record<string, unknown>;
+}
+
+export interface HookRecorder {
+  calls: HookCall[];
+  /** Answers for the next calls, in order; then 200. A string throws that error. */
+  replies: (number | "timeout" | "network")[];
 }
 
 export function harness(
@@ -73,6 +90,40 @@ export function harness(
   const sessions = new Sessions(() => clock.now);
   const org = options.org ?? new Org(null, () => clock.now);
   const workflows = new Workflows();
+  const hooks: HookRecorder = { calls: [], replies: [] };
+  const upstreamFetch: typeof fetch =
+    options.fetch ??
+    ((input, init) =>
+      Promise.resolve(upstream.app.fetch(new Request(input, init))));
+  const alertFetch: typeof fetch = async (input, init) => {
+    const url = String(input);
+    if (!url.startsWith("https://hooks.test/"))
+      return upstreamFetch(input, init);
+    const body = String(init?.body ?? "");
+    hooks.calls.push({
+      url,
+      headers: { ...(init?.headers as Record<string, string>) },
+      body,
+      json: JSON.parse(body) as Record<string, unknown>,
+    });
+    const reply = hooks.replies.shift() ?? 200;
+    if (reply === "timeout") {
+      const err = new Error("timed out");
+      err.name = "TimeoutError";
+      throw err;
+    }
+    if (reply === "network") throw new TypeError("fetch failed");
+    return new Response("ok", { status: reply });
+  };
+  const alerts = new Alerts({
+    store,
+    vault,
+    fetch: alertFetch,
+    now: () => clock.now,
+    baseUrl: "http://127.0.0.1:4141",
+    retryDelaysMs: [0, 0, 0],
+    batchMs: 60_000,
+  });
   const app = createApp({
     store,
     inflight,
@@ -92,14 +143,12 @@ export function harness(
     sessions,
     org,
     workflows,
+    alerts,
     demoSignIn: options.demoSignIn,
     baseUrl: options.baseUrl,
     customConnectors: options.customConnectors,
     webDir: options.webDir,
-    fetch:
-      options.fetch ??
-      ((input, init) =>
-        Promise.resolve(upstream.app.fetch(new Request(input, init)))),
+    fetch: upstreamFetch,
     now: () => clock.now,
     adminToken: ADMIN_TOKEN,
     subscriptionDirs: options.subscriptionDirs,
@@ -114,6 +163,8 @@ export function harness(
     sessions,
     org,
     workflows,
+    alerts,
+    hooks,
     upstream,
     clock,
     addAgent(name = "support-bot", limits = {}, extra = {}) {

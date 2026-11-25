@@ -273,6 +273,11 @@ Connector { id, name, kind: "openai-compatible" | "anthropic", source: "builtin"
 Workflows, their results and the ROI report are under `/admin/workflows`. See
 [roi.md](roi.md).
 
+## Alerts
+
+Alert channels, thresholds and history are under `/admin/alerts`. See
+[alerts.md](alerts.md).
+
 ## Web UI
 
 Any other GET that is not under `/admin`, `/auth`, `/login`, `/health` or a gateway

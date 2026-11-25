@@ -21,6 +21,12 @@ function bucket(window: SpendWindow, iso: string): string {
   return window === "day" ? iso.slice(0, 10) : iso.slice(0, 7);
 }
 
+/** Something that wants to hear about new usage and audit events, such as alerts. */
+export interface StoreListener {
+  usage?: ((record: UsageRecord) => void) | undefined;
+  audit?: ((event: AuditEvent) => void) | undefined;
+}
+
 /** Totals across every agent are kept under this id. */
 const ALL = "*";
 
@@ -54,6 +60,7 @@ export class Store {
   private readonly requestCounts = new Map<string, number>();
   private readonly lastUsed = new Map<string, string>();
   private readonly providersUsed = new Map<string, Set<string>>();
+  private readonly listeners: StoreListener[] = [];
   /** While above zero, agent saves are held and written once at the end. */
   private batchDepth = 0;
   private dirty = false;
@@ -129,6 +136,23 @@ export class Store {
   recordUsage(record: UsageRecord): void {
     this.indexUsage(record);
     this.append("usage.jsonl", record);
+    this.tell((l) => l.usage?.(record));
+  }
+
+  /** Hears every usage record and audit event from now on. */
+  subscribe(listener: StoreListener): void {
+    this.listeners.push(listener);
+  }
+
+  /** A listener's mistake must never fail the call or change it records. */
+  private tell(fn: (listener: StoreListener) => void): void {
+    for (const listener of this.listeners) {
+      try {
+        fn(listener);
+      } catch (err) {
+        console.error(err);
+      }
+    }
   }
 
   spend(agentId: string, window: SpendWindow, at: Date): number {
@@ -199,6 +223,7 @@ export class Store {
   audit(event: AuditEvent): void {
     this.events.push(event);
     this.append("audit.jsonl", event);
+    this.tell((l) => l.audit?.(event));
   }
 
   listAudit(): AuditEvent[] {
