@@ -748,7 +748,7 @@ export type AlertType =
   | "workflow.stop"
   | "request.waiting";
 
-export type ChannelKind = "webhook" | "slack" | "discord";
+export type ChannelKind = "webhook" | "slack" | "discord" | "email";
 
 export interface AlertSettings {
   nearLimitPercent: number;
@@ -765,6 +765,8 @@ export interface AlertChannel {
   events: AlertType[];
   enabled: boolean;
   createdAt: string;
+  /** For email: who gets the alerts. */
+  to?: string[] | undefined;
   urlHint: string;
   signed: boolean;
   lastDelivery?:
@@ -792,8 +794,25 @@ export interface AlertRecord {
   deliveries: AlertDelivery[];
 }
 
+export type SmtpSecurity = "tls" | "starttls" | "none";
+
+export interface SmtpSettings {
+  host: string;
+  port: number;
+  security: SmtpSecurity;
+  username: string;
+  from: string;
+  passwordSet: boolean;
+}
+
+/** Saving the mail server: a password left out keeps the saved one, empty forgets it. */
+export interface SmtpInput extends Omit<SmtpSettings, "passwordSet"> {
+  password?: string | undefined;
+}
+
 export interface AlertsView {
   settings: AlertSettings;
+  smtp: SmtpSettings | null;
   channels: AlertChannel[];
   types: { type: AlertType; words: string }[];
   recent: AlertRecord[];
@@ -802,6 +821,9 @@ export interface AlertsView {
 export interface NewChannel {
   name: string;
   kind: ChannelKind;
-  url: string;
+  /** For Slack, Discord and webhooks. */
+  url?: string | undefined;
+  /** For email. */
+  to?: string[] | undefined;
   events: AlertType[];
 }

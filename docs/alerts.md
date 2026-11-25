@@ -4,7 +4,7 @@ ROAI Purser tells you when something needs a person: an agent near or at its spe
 limit, spending far more than usual, stopped, or with a key about to expire; a workflow
 past its stop line; or a request waiting for a decision.
 
-Alerts go to Slack, Discord or any webhook. Email comes next.
+Alerts go to Slack, Discord, email or any webhook.
 
 ## What alerts
 
@@ -49,6 +49,7 @@ one was delivered.
 | --------- | ------------------------------------------------------------------------------------- |
 | `slack`   | A Slack incoming webhook message                                                      |
 | `discord` | A Discord webhook message. Mentions are switched off, so no name can ping `@everyone` |
+| `email`   | An email to up to 20 addresses, through your mail server ([below](#email))            |
 | `webhook` | The JSON below, signed                                                                |
 
 **Channel URLs are secrets.** Slack and Discord webhook URLs carry their own token, so
@@ -60,6 +61,38 @@ Redirects are not followed.
 4xx (other than 429) isn't tried again. Each try waits at most 5 seconds. A failed
 delivery is written to the audit log as `alert.failed`, and the channel shows its last
 delivery. **Test** sends a sample message straight away.
+
+## Email
+
+Email goes out through a mail server you set once, under **Mail server** on the Alerts
+page: your company's, or a sending service such as Amazon SES, Postmark or SendGrid.
+Their SMTP settings page lists what to enter.
+
+| Setting        | Is                                                                                 |
+| -------------- | ---------------------------------------------------------------------------------- |
+| Server address | Such as `smtp.example.com`                                                         |
+| Port           | Usually 587 with STARTTLS, 465 with TLS                                            |
+| Encryption     | `starttls` (upgrade, and refuse to go on without it), `tls`, or `none`             |
+| Username       | Empty if the server takes mail without signing in, such as a relay on your network |
+| Password       | Kept with the provider keys, never shown again                                     |
+| Send from      | An address the server lets you send from. Mail arrives from "ROAI Purser" at it    |
+
+**No password in the clear.** With encryption `none`, Purser sends a password only to a
+mail server on this computer. TLS needs version 1.2 or later, and the server's
+certificate is checked.
+
+Then add an `email` channel with the addresses to send to. Each alert is one message to
+all of them, in plain text with a simple HTML copy. The subject starts `[Purser]`. Each
+message carries `X-Purser-Event` with the alert type, and `Auto-Submitted:
+auto-generated`, so out-of-office replies leave it alone.
+
+Email is sent like the other channels: three tries, except that a refused sign-in or a
+refused address (an SMTP 5xx answer) isn't tried again, since trying won't change it. A
+busy server (4xx) or no answer is tried again. **Test** on an email channel sends a
+sample message.
+
+Removing the mail server keeps email channels, but nothing reaches them until a server
+is set up again.
 
 ### The webhook body
 
@@ -115,13 +148,20 @@ Links in alerts use `PURSER_BASE_URL` ([docker.md](docker.md)).
 
 Under `/admin`, with the admin token or an admin's session ([admin-api.md](admin-api.md)).
 
-| Route                            | Does                                                                             |
-| -------------------------------- | -------------------------------------------------------------------------------- |
-| `GET /alerts`                    | Settings, channels, the alert types and the newest alerts with deliveries        |
-| `PUT /alerts/settings`           | Changes `nearLimitPercent`, `spikeMultiple`, `spikeMinUsd`, `keyExpiringDays`    |
-| `POST /alerts/channels`          | Adds `{ name, kind, url, events? }`. A webhook's signing secret is returned once |
-| `PATCH /alerts/channels/:id`     | Changes `name`, `url`, `events` or `enabled`                                     |
-| `DELETE /alerts/channels/:id`    | Removes a channel and its saved URL                                              |
-| `POST /alerts/channels/:id/test` | Sends a test message now and returns how it went                                 |
+| Route                            | Does                                                                           |
+| -------------------------------- | ------------------------------------------------------------------------------ |
+| `GET /alerts`                    | Settings, the mail server, channels, the alert types and the newest alerts     |
+| `PUT /alerts/settings`           | Changes `nearLimitPercent`, `spikeMultiple`, `spikeMinUsd`, `keyExpiringDays`  |
+| `PUT /alerts/smtp`               | Sets `{ host, port, security, username?, password?, from }`. See below         |
+| `DELETE /alerts/smtp`            | Removes the mail server and its password                                       |
+| `POST /alerts/channels`          | Adds `{ name, kind, url, events? }`, or `{ name, kind: "email", to, events? }` |
+| `PATCH /alerts/channels/:id`     | Changes `name`, `url` (or `to` for email), `events` or `enabled`               |
+| `DELETE /alerts/channels/:id`    | Removes a channel and its saved URL                                            |
+| `POST /alerts/channels/:id/test` | Sends a test message now and returns how it went                               |
 
-Changes to channels and settings are written to the audit log as `alerts.changed`.
+The mail server is returned with `passwordSet` in place of the password. On `PUT`, a
+`password` left out keeps the saved one, and an empty one forgets it. An email channel
+can be added only once a mail server is set.
+
+Changes to channels, settings and the mail server are written to the audit log as
+`alerts.changed`, never with the password.

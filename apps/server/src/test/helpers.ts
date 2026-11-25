@@ -11,6 +11,12 @@ import type { AgentLimits } from "../types.js";
 import { Vault } from "../vault.js";
 import { Workflows } from "../workflows.js";
 import { Alerts } from "../alerts.js";
+import type {
+  MailError,
+  MailMessage,
+  SendMail,
+  SmtpSettings,
+} from "../mail.js";
 import {
   mockUpstream,
   REAL_ANTHROPIC_KEY,
@@ -31,6 +37,8 @@ export interface Harness {
   alerts: Alerts;
   /** What alert channels received at https://hooks.test/..., and how to answer. */
   hooks: HookRecorder;
+  /** What email alerts were sent, through which server, and how to answer. */
+  mail: MailRecorder;
   upstream: ReturnType<typeof mockUpstream>;
   clock: { now: Date };
   addAgent(
@@ -59,6 +67,15 @@ export interface HookCall {
   headers: Record<string, string>;
   body: string;
   json: Record<string, unknown>;
+}
+
+export interface MailRecorder {
+  sent: {
+    smtp: SmtpSettings & { password?: string | undefined };
+    message: MailMessage;
+  }[];
+  /** Errors to throw for the next sends, in order; then success. */
+  replies: MailError[];
 }
 
 export interface HookRecorder {
@@ -115,7 +132,14 @@ export function harness(
     if (reply === "network") throw new TypeError("fetch failed");
     return new Response("ok", { status: reply });
   };
+  const mail: MailRecorder = { sent: [], replies: [] };
+  const sendMail: SendMail = (smtp, message) => {
+    mail.sent.push({ smtp, message });
+    const reply = mail.replies.shift();
+    return reply ? Promise.reject(reply) : Promise.resolve();
+  };
   const alerts = new Alerts({
+    sendMail,
     store,
     vault,
     fetch: alertFetch,
@@ -165,6 +189,7 @@ export function harness(
     workflows,
     alerts,
     hooks,
+    mail,
     upstream,
     clock,
     addAgent(name = "support-bot", limits = {}, extra = {}) {

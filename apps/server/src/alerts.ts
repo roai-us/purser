@@ -2,6 +2,13 @@ import { createHmac, randomBytes } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { newId, secretHint } from "./keys.js";
+import {
+  MailError,
+  sendMail as nodemailerSend,
+  type MailMessage,
+  type SendMail,
+  type SmtpSettings,
+} from "./mail.js";
 import { capFor } from "./policy.js";
 import { writeAtomic, type SpendWindow, type Store } from "./store.js";
 import type { Agent, AuditEvent, UsageRecord } from "./types.js";
@@ -45,7 +52,7 @@ const SEVERITY: Record<AlertType, Severity> = {
 };
 
 /** Where alerts go. Slack and Discord get messages in their own format. */
-export type ChannelKind = "webhook" | "slack" | "discord";
+export type ChannelKind = "webhook" | "slack" | "discord" | "email";
 
 export interface Channel {
   id: string;
@@ -55,6 +62,8 @@ export interface Channel {
   events: AlertType[];
   enabled: boolean;
   createdAt: string;
+  /** For email: who gets the alerts. */
+  to?: string[] | undefined;
 }
 
 export interface AlertSettings {
@@ -122,6 +131,13 @@ export interface AlertsDeps {
   retryDelaysMs?: number[] | undefined;
   /** How long events gather before they are sent, so a burst becomes one message. */
   batchMs?: number | undefined;
+  /** Sends email. Tests pass their own. */
+  sendMail?: SendMail | undefined;
+}
+
+/** The mail server as the admin API shows it: never the password. */
+export interface PublicSmtp extends SmtpSettings {
+  passwordSet: boolean;
 }
 
 interface Pending {
@@ -137,6 +153,7 @@ interface Pending {
 interface AlertsFile {
   settings: AlertSettings;
   channels: Channel[];
+  smtp?: SmtpSettings | undefined;
 }
 
 /** More events of one type than this in one batch are summed up in one message. */
@@ -151,6 +168,8 @@ const TIMEOUT_MS = 5_000;
 export const channelSecret = (id: string) => `__alert_${id}`;
 /** The vault entry holding a webhook channel's signing secret. */
 export const signingSecret = (id: string) => `__alert_sign_${id}`;
+/** The vault entry holding the mail server's password. */
+export const SMTP_SECRET = "__alert_smtp";
 
 const money = (n: number) =>
   new Intl.NumberFormat("en-US", {
@@ -185,6 +204,7 @@ export function webhookProblem(url: string): string | null {
 export class Alerts {
   private settingsValue: AlertSettings = { ...DEFAULT_ALERT_SETTINGS };
   private channelsList: Channel[] = [];
+  private smtpValue: SmtpSettings | undefined;
   private readonly history: AlertRecord[] = [];
   /** Markers for alerts that fire once, with when they fired. */
   private readonly fired = new Map<string, string>();
@@ -217,6 +237,39 @@ export class Alerts {
     return this.settings();
   }
 
+  /** The mail server email alerts go out through, if one is set up. */
+  smtp(): PublicSmtp | null {
+    if (!this.smtpValue) return null;
+    return {
+      ...this.smtpValue,
+      passwordSet: Boolean(this.deps.vault.get(SMTP_SECRET)?.apiKey),
+    };
+  }
+
+  /**
+   * Sets up the mail server. A password left out keeps the saved one; an
+   * empty one forgets it.
+   */
+  setSmtp(input: SmtpSettings & { password?: string | undefined }): PublicSmtp {
+    const { password, ...settings } = input;
+    this.smtpValue = settings;
+    if (password === "") this.deps.vault.removeKey(SMTP_SECRET);
+    else if (password !== undefined) {
+      this.deps.vault.set(SMTP_SECRET, {
+        apiKey: password,
+        updatedAt: this.deps.now().toISOString(),
+      });
+    }
+    this.save();
+    return this.smtp() as PublicSmtp;
+  }
+
+  removeSmtp(): void {
+    this.smtpValue = undefined;
+    this.deps.vault.removeKey(SMTP_SECRET);
+    this.save();
+  }
+
   channels(): PublicChannel[] {
     return this.channelsList.map((c) => this.present(c));
   }
@@ -228,7 +281,8 @@ export class Alerts {
   addChannel(input: {
     name: string;
     kind: ChannelKind;
-    url: string;
+    url?: string | undefined;
+    to?: string[] | undefined;
     events: AlertType[];
   }): { channel: PublicChannel; signingSecret?: string | undefined } {
     const channel: Channel = {
@@ -238,11 +292,14 @@ export class Alerts {
       events: input.events,
       enabled: true,
       createdAt: this.deps.now().toISOString(),
+      ...(input.kind === "email" ? { to: input.to ?? [] } : {}),
     };
-    this.deps.vault.set(channelSecret(channel.id), {
-      apiKey: input.url,
-      updatedAt: channel.createdAt,
-    });
+    if (input.kind !== "email") {
+      this.deps.vault.set(channelSecret(channel.id), {
+        apiKey: input.url ?? "",
+        updatedAt: channel.createdAt,
+      });
+    }
     // A plain webhook is signed, so the receiver can tell it came from here.
     let secret: string | undefined;
     if (channel.kind === "webhook") {
@@ -259,6 +316,7 @@ export class Alerts {
     patch: {
       name?: string | undefined;
       url?: string | undefined;
+      to?: string[] | undefined;
       events?: AlertType[] | undefined;
       enabled?: boolean | undefined;
     },
@@ -270,8 +328,11 @@ export class Alerts {
       ...(patch.name === undefined ? {} : { name: patch.name }),
       ...(patch.events === undefined ? {} : { events: patch.events }),
       ...(patch.enabled === undefined ? {} : { enabled: patch.enabled }),
+      ...(patch.to === undefined || current.kind !== "email"
+        ? {}
+        : { to: patch.to }),
     };
-    if (patch.url !== undefined) {
+    if (patch.url !== undefined && current.kind !== "email") {
       this.deps.vault.set(channelSecret(id), {
         apiKey: patch.url,
         updatedAt: this.deps.now().toISOString(),
@@ -587,6 +648,8 @@ export class Alerts {
     alert: Alert,
     delays: number[],
   ): Promise<Delivery> {
+    if (channel.kind === "email")
+      return this.deliverEmail(channel, alert, delays);
     const url = this.deps.vault.get(channelSecret(channel.id))?.apiKey;
     const base = { channelId: channel.id, channelName: channel.name };
     if (!url)
@@ -644,6 +707,46 @@ export class Alerts {
     return last;
   }
 
+  private async deliverEmail(
+    channel: Channel,
+    alert: Alert,
+    delays: number[],
+  ): Promise<Delivery> {
+    const base = { channelId: channel.id, channelName: channel.name };
+    const smtp = this.smtpValue;
+    if (!smtp) {
+      return {
+        ...base,
+        ok: false,
+        attempts: 0,
+        error: "Set up the mail server first.",
+      };
+    }
+    if (!channel.to || channel.to.length === 0) {
+      return { ...base, ok: false, attempts: 0, error: "No one to send to." };
+    }
+    const send = this.deps.sendMail ?? nodemailerSend;
+    const password = this.deps.vault.get(SMTP_SECRET)?.apiKey;
+    const message = formatEmail(alert, channel.to);
+    let last: Delivery = { ...base, ok: false, attempts: 0 };
+    for (const [i, delay] of delays.entries()) {
+      if (delay > 0) await new Promise((r) => setTimeout(r, delay));
+      try {
+        await send({ ...smtp, password }, message);
+        return { ...base, ok: true, attempts: i + 1 };
+      } catch (err) {
+        const problem =
+          err instanceof MailError
+            ? err
+            : new MailError("Could not reach the mail server.", false);
+        last = { ...base, ok: false, attempts: i + 1, error: problem.message };
+        // A refused password or address won't get better by trying again.
+        if (problem.permanent) return last;
+      }
+    }
+    return last;
+  }
+
   // Bookkeeping
 
   private readonly lastDelivery = new Map<
@@ -656,6 +759,14 @@ export class Alerts {
   }
 
   private present(channel: Channel): PublicChannel {
+    if (channel.kind === "email") {
+      return {
+        ...channel,
+        urlHint: "",
+        signed: false,
+        lastDelivery: this.lastDelivery.get(channel.id),
+      };
+    }
     const url = this.deps.vault.get(channelSecret(channel.id))?.apiKey ?? "";
     let urlHint: string;
     try {
@@ -709,6 +820,7 @@ export class Alerts {
       >;
       this.settingsValue = { ...DEFAULT_ALERT_SETTINGS, ...data.settings };
       this.channelsList = data.channels ?? [];
+      this.smtpValue = data.smtp;
       for (const [marker, at] of Object.entries(data.fired ?? {})) {
         this.fired.set(marker, at);
         if (marker.startsWith("workflow.stop|")) {
@@ -748,6 +860,7 @@ export class Alerts {
         {
           settings: this.settingsValue,
           channels: this.channelsList,
+          ...(this.smtpValue ? { smtp: this.smtpValue } : {}),
           fired: Object.fromEntries(this.fired),
         },
         null,
@@ -806,7 +919,10 @@ const slackEscape = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 /** The body a channel gets. */
-export function format(kind: ChannelKind, alert: Alert): unknown {
+export function format(
+  kind: Exclude<ChannelKind, "email">,
+  alert: Alert,
+): unknown {
   if (kind === "slack") {
     return {
       text: `*${slackEscape(alert.title)}*\n${slackEscape(alert.text)}\n<${alert.url}|Open in Purser>`,
@@ -830,5 +946,40 @@ export function format(kind: ChannelKind, alert: Alert): unknown {
     url: alert.url,
     count: alert.count,
     data: alert.data,
+  };
+}
+
+const htmlEscape = (s: string) =>
+  s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+/** The email an alert becomes: plain text, with a simple escaped HTML twin. */
+export function formatEmail(alert: Alert, to: string[]): MailMessage {
+  // Names are typed by people: a line break in a subject could add a header.
+  const oneLine = alert.title.replace(/[\r\n]+/g, " ").trim();
+  const subject = `[Purser] ${oneLine.length > 180 ? `${oneLine.slice(0, 177)}...` : oneLine}`;
+  const footer =
+    "Sent by ROAI Purser. Choose which alerts come to this address on the Alerts page.";
+  return {
+    to,
+    subject,
+    text: `${alert.title}\n\n${alert.text}\n\nOpen in Purser: ${alert.url}\n\n-- \n${footer}\n`,
+    html: [
+      '<div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:15px;line-height:1.5;color:#1a2233;max-width:560px">',
+      `<p style="font-size:17px;font-weight:600;margin:0 0 8px">${htmlEscape(alert.title)}</p>`,
+      `<p style="margin:0 0 16px">${htmlEscape(alert.text)}</p>`,
+      `<p style="margin:0 0 24px"><a href="${htmlEscape(alert.url)}">Open in Purser</a></p>`,
+      `<p style="margin:0;font-size:12px;color:#667085">${htmlEscape(footer)}</p>`,
+      "</div>",
+    ].join(""),
+    headers: {
+      "X-Purser-Event": alert.type,
+      // Asks out-of-office replies not to answer an automatic message.
+      "Auto-Submitted": "auto-generated",
+    },
   };
 }
